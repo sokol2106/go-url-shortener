@@ -1,19 +1,28 @@
 package main
 
-import "net/http"
+import (
+	"io"
+	"net/http"
+)
 
 func hanlerPost(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		w.Write([]byte("http://localhost:8080/EwHXdJfB"))
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(400)
+			return
+		}
+		w.Write(body)
+		w.Header().Set("Location", string(body))
 		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(201)
+		w.WriteHeader(http.StatusCreated)
 		return
 	}
 
 	if r.Method == http.MethodGet {
-		w.Write([]byte("Temporary Redirect"))
+		//w.Write([]byte("Temporary Redirect"))
 		w.Header().Set("Location", "https://practicum.yandex.ru/")
-		w.WriteHeader(307)
+		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 
