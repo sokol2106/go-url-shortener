@@ -28,7 +28,7 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = checkUrl(string(body))
+		err = checkURL(string(body))
 		if err != nil {
 			w.WriteHeader(400)
 			return
@@ -68,7 +68,7 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func checkUrl(body string) error {
+func checkURL(body string) error {
 	urlParse, err := url.Parse(body)
 	if err != nil {
 		return err
