@@ -5,13 +5,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	storage "github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
 )
 
-var tableshortdata = make(map[string]Shortdata)
+var tableshortdata = make(map[string]*storage.Shortdata)
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -34,14 +35,14 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 
 		tshdata, exist := tableshortdata[thash]
 		if !exist {
-			tshdata = shortdata{string(body), "/" + randText(8)}
+			tshdata = storage.NewShortdata(string(body), "/"+randText(8))
 			tableshortdata[thash] = tshdata
 		}
 
 		//w.Header().Set("Location", thash)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, "http://localhost:8080%s", tshdata.short)
+		_, _ = fmt.Fprintf(w, "http://localhost:8080%s", tshdata.Short())
 
 		return
 	}
@@ -50,8 +51,8 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
 		for _, value := range tableshortdata {
-			if path == value.short {
-				w.Header().Set("Location", value.url)
+			if path == value.Short() {
+				w.Header().Set("Location", value.Url())
 				w.WriteHeader(http.StatusTemporaryRedirect)
 				return
 			}
