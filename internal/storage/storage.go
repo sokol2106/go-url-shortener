@@ -9,7 +9,7 @@ func NewShortdata(url string, short string) *Shortdata {
 	return &Shortdata{url, short}
 }
 
-func (sd *Shortdata) Url() string {
+func (sd *Shortdata) URL() string {
 	return sd.url
 }
 

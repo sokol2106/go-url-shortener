@@ -52,7 +52,7 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 
 		for _, value := range tableshortdata {
 			if path == value.Short() {
-				w.Header().Set("Location", value.Url())
+				w.Header().Set("Location", value.URL())
 				w.WriteHeader(http.StatusTemporaryRedirect)
 				return
 			}
