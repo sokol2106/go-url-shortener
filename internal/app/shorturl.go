@@ -20,13 +20,13 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		err = checkURL(string(body))
 		if err != nil {
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
@@ -59,7 +59,7 @@ func HanlerMain(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(400)
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 func checkURL(body string) error {
