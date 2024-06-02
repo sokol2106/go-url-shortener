@@ -68,6 +68,9 @@ func TestHanlerMain(t *testing.T) {
 				assert.Equal(t, tt.wantGet.code, res.StatusCode)
 				assert.Equal(t, tt.url, res.Header.Get("Location"))
 
+				err = res.Body.Close()
+				require.NoError(t, err)
+
 			}
 		})
 	}
@@ -112,6 +115,9 @@ func TestErrorPostHanlerMain(t *testing.T) {
 			HanlerMain(w, request)
 			res := w.Result()
 			assert.Equal(t, tt.wantPost.code, res.StatusCode)
+
+			err := res.Body.Close()
+			require.NoError(t, err)
 		})
 	}
 }
