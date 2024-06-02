@@ -11,12 +11,7 @@ import (
 	"net/url"
 )
 
-type shortdata struct {
-	url   string
-	short string
-}
-
-var tableshortdata = make(map[string]shortdata)
+var tableshortdata = make(map[string]Shortdata)
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
