@@ -1,6 +1,7 @@
-package shorturl
+package test
 
 import (
+	"github.com/sokol2106/go-url-shortener/internal/app"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -45,7 +46,7 @@ func TestHanlerMain(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url))
 
 			w := httptest.NewRecorder()
-			HanlerMain(w, request)
+			shorturl.HanlerMain(w, request)
 			res := w.Result()
 
 			status := assert.Equal(t, tt.wantPost.code, res.StatusCode)
@@ -62,7 +63,7 @@ func TestHanlerMain(t *testing.T) {
 				// Проверяем Get запрос
 				request := httptest.NewRequest(http.MethodGet, urlParse.Path, strings.NewReader(tt.url))
 				w := httptest.NewRecorder()
-				HanlerMain(w, request)
+				shorturl.HanlerMain(w, request)
 				res := w.Result()
 
 				assert.Equal(t, tt.wantGet.code, res.StatusCode)
@@ -112,7 +113,7 @@ func TestErrorPostHanlerMain(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url))
 
 			w := httptest.NewRecorder()
-			HanlerMain(w, request)
+			shorturl.HanlerMain(w, request)
 			res := w.Result()
 			assert.Equal(t, tt.wantPost.code, res.StatusCode)
 
