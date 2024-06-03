@@ -1,7 +1,7 @@
 package main
 
 import (
-	shorturl "github.com/sokol2106/go-url-shortener/internal/app"
+	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"net/http"
 )
 

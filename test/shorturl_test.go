@@ -1,7 +1,7 @@
 package test
 
 import (
-	"github.com/sokol2106/go-url-shortener/internal/app"
+	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
