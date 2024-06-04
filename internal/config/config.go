@@ -1,6 +1,6 @@
 package config
 
 const (
-	DefaultHttpPort = 8080
-	DefaultHttpHost = "localhost"
+	DefaultHTTPpPort = 8080
+	DefaultHTTPHost = "localhost"
 )
