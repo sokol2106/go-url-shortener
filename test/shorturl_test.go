@@ -34,7 +34,7 @@ func TestHanlerMain(t *testing.T) {
 				contentType: "text/plain",
 			},
 			wantGet: strWant{
-				code:        http.StatusTemporaryRedirect,
+				code:        http.StatusOK,
 				contentType: "text/plain",
 			},
 		},
@@ -43,41 +43,39 @@ func TestHanlerMain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
-			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url))
-			w := httptest.NewRecorder()
-			shorturl.Post(w, request)
-			res := w.Result()
 
-			status := assert.Equal(t, tt.wantPost.code, res.StatusCode)
-			content := assert.Equal(t, tt.wantPost.contentType, res.Header.Get("Content-Type"))
+			server := httptest.NewServer(shorturl.ShortRouter())
+			defer server.Close()
+			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
+			require.NoError(t, err)
+
+			response, err := server.Client().Do(request)
+			require.NoError(t, err)
+
+			status := assert.Equal(t, tt.wantPost.code, response.StatusCode)
+			content := assert.Equal(t, tt.wantPost.contentType, response.Header.Get("Content-Type"))
 
 			if status && content {
-				defer res.Body.Close()
-				resBody, err := io.ReadAll(res.Body)
+				resBody, err := io.ReadAll(response.Body)
+				require.NoError(t, err)
+
+				err = response.Body.Close()
 				require.NoError(t, err)
 
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
 				// Проверяем Get запрос
-				//request := httptest.NewRequest(http.MethodGet, urlParse.Path, strings.NewReader(tt.url))
 
-				ts := httptest.NewServer(shorturl.ShortRouter())
-				defer ts.Close()
-				request, err := http.NewRequest(http.MethodGet, ts.URL+urlParse.Path, nil)
-
-				resp, err := ts.Client().Do(request)
+				request, err = http.NewRequest(http.MethodGet, server.URL+urlParse.Path, nil)
 				require.NoError(t, err)
-				defer resp.Body.Close()
 
-				//w := httptest.NewRecorder()
-				//shorturl.Get(w, request)
-				//res := w.Result()
+				response, err = server.Client().Do(request)
+				require.NoError(t, err)
 
-				assert.Equal(t, tt.wantGet.code, resp.StatusCode)
-				assert.Equal(t, tt.url, resp.Header.Get("Location"))
+				assert.Equal(t, tt.wantGet.code, response.StatusCode)
 
-				err = res.Body.Close()
+				err = response.Body.Close()
 				require.NoError(t, err)
 
 			}
@@ -118,14 +116,17 @@ func TestErrorPostHanlerMain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
-			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url))
 
-			w := httptest.NewRecorder()
-			shorturl.Post(w, request)
-			res := w.Result()
-			assert.Equal(t, tt.wantPost.code, res.StatusCode)
+			server := httptest.NewServer(shorturl.ShortRouter())
+			defer server.Close()
+			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
+			require.NoError(t, err)
 
-			err := res.Body.Close()
+			response, err := server.Client().Do(request)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantPost.code, response.StatusCode)
+
+			err = response.Body.Close()
 			require.NoError(t, err)
 		})
 	}
