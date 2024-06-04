@@ -44,7 +44,7 @@ func TestHanlerMain(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
 
-			server := httptest.NewServer(shorturl.ShortRouter())
+			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
 			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
 			require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestErrorPostHanlerMain(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
 
-			server := httptest.NewServer(shorturl.ShortRouter())
+			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
 			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
 			require.NoError(t, err)

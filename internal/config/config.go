@@ -1,31 +1,59 @@
 package config
 
-import "fmt"
-
-const (
-	DefaultHTTPpPort = 8080
-	DefaultHTTPHost  = "localhost"
+import (
+	"fmt"
+	"net"
+	"net/url"
 )
 
-type configServer struct {
-	httpHost string
-	httpPort int
+type ConfigServer struct {
+	host string
+	port string
 }
 
-func NewConfig(h string, p int) *configServer {
-	return &configServer{
-		httpHost: h,
-		httpPort: p,
+func NewConfig(h string, p string) *ConfigServer {
+	return &ConfigServer{
+		host: h,
+		port: p,
 	}
 }
 
-func (cs *configServer) HTTPHost() string {
-	return cs.httpHost
+func NewConfigURL(u string) *ConfigServer {
+	var (
+		h string
+		p string
+	)
+	urlParse, _ := url.Parse(u)
+	if urlParse.Scheme == "http" || urlParse.Scheme == "https" {
+		h, p, _ = net.SplitHostPort(urlParse.Host)
+	} else {
+		// Если пришло localhost:8080
+		h = urlParse.Scheme
+		p = urlParse.Opaque
+	}
+
+	return &ConfigServer{
+		host: h,
+		port: p,
+	}
 }
 
-func (cs *configServer) HTTPPort() int {
-	return cs.httpPort
+func (cs *ConfigServer) Host() string {
+	return cs.host
 }
-func (cs *configServer) URL() string {
-	return fmt.Sprintf("http://%s:%d", cs.HTTPHost(), cs.HTTPPort())
+
+func (cs *ConfigServer) Port() string {
+	return cs.port
+}
+
+func (cs *ConfigServer) Addr() string {
+	return fmt.Sprintf("%s:%s", cs.Host(), cs.Port())
+}
+
+func (cs *ConfigServer) URL() string {
+	return fmt.Sprintf("http://%s:%s", cs.Host(), cs.Port())
+}
+
+func (cs *ConfigServer) URLS() string {
+	return fmt.Sprintf("https://%s:%s", cs.Host(), cs.Port())
 }

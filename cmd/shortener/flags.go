@@ -2,12 +2,9 @@ package main
 
 import "flag"
 
-var flagRunAddr string
+func ParseFlags(baseHost *string, shortHost *string) {
+	flag.StringVar(baseHost, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(shortHost, "b", "localhost:7777", "base address and port of the resulting shortened URL")
 
-func parseFlags() {
-	// регистрируем переменную flagRunAddr
-	// как аргумент -a со значением :8080 по умолчанию
-	flag.StringVar(&flagRunAddr, "a", ":8080", "address and port to run server")
-	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 }
