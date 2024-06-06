@@ -7,8 +7,8 @@ import (
 )
 
 type params struct {
-	Server_Address string
-	Base_URL       string
+	ServerAddress string
+	BaseURL       string
 }
 
 func main() {
@@ -18,12 +18,12 @@ func main() {
 	)
 
 	p := params{"localhost:8080", "localhost:8080"}
-	p.Server_Address, flg = os.LookupEnv("SERVER_ADDRESS")
-	p.Base_URL, flg2 = os.LookupEnv("BASE_URL")
+	p.ServerAddress, flg = os.LookupEnv("SERVER_ADDRESS")
+	p.BaseURL, flg2 = os.LookupEnv("BASE_URL")
 
 	if !flg || !flg2 {
-		ParseFlags(&p.Server_Address, &p.Base_URL)
+		ParseFlags(&p.ServerAddress, &p.BaseURL)
 	}
 
-	app.Run(config.NewConfigURL(p.Server_Address), config.NewConfigURL(p.Base_URL))
+	app.Run(config.NewConfigURL(p.ServerAddress), config.NewConfigURL(p.BaseURL))
 }
