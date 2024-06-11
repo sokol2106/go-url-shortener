@@ -18,8 +18,7 @@ type strWant struct {
 	contentType string
 }
 
-func TestHanlerMain(t *testing.T) {
-
+func TestHandlerMain(t *testing.T) {
 	tests := []struct {
 		name     string
 		url      string
@@ -39,11 +38,9 @@ func TestHanlerMain(t *testing.T) {
 			},
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
-
 			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
 			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
@@ -54,7 +51,6 @@ func TestHanlerMain(t *testing.T) {
 
 			status := assert.Equal(t, tt.wantPost.code, response.StatusCode)
 			content := assert.Equal(t, tt.wantPost.contentType, response.Header.Get("Content-Type"))
-
 			if status && content {
 				resBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
@@ -74,7 +70,6 @@ func TestHanlerMain(t *testing.T) {
 				require.NoError(t, err)
 
 				assert.Equal(t, tt.wantGet.code, response.StatusCode)
-
 				err = response.Body.Close()
 				require.NoError(t, err)
 
@@ -83,8 +78,7 @@ func TestHanlerMain(t *testing.T) {
 	}
 }
 
-func TestErrorPostHanlerMain(t *testing.T) {
-
+func TestCheckPostHandlerMain(t *testing.T) {
 	tests := []struct {
 		name     string
 		url      string
@@ -98,21 +92,34 @@ func TestErrorPostHanlerMain(t *testing.T) {
 			},
 		},
 		{
-			name: "Error not http or https",
-			url:  "practicum.yandex.ru",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
 			name: "Error not host",
 			url:  "http://",
 			wantPost: strWant{
 				code: http.StatusBadRequest,
 			},
 		},
+		{
+			name: "Error empty",
+			url:  "",
+			wantPost: strWant{
+				code: http.StatusCreated,
+			},
+		},
+		{
+			name: "success",
+			url:  "https://yandex.ru/maps/15/tula/?ll=37.617348%2C54.193122&z=13",
+			wantPost: strWant{
+				code: http.StatusCreated,
+			},
+		},
+		{
+			name: "success",
+			url:  "practicum.yandex.ru",
+			wantPost: strWant{
+				code: http.StatusCreated,
+			},
+		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос

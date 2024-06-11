@@ -18,24 +18,29 @@ func NewConfig(h string, p string) *ConfigServer {
 	}
 }
 
-func NewConfigURL(u string) *ConfigServer {
+func NewConfigURL(u string) (*ConfigServer, error) {
 	var (
 		h string
 		p string
 	)
-	urlParse, _ := url.Parse(u)
-	if urlParse.Scheme == "http" || urlParse.Scheme == "https" {
-		h, p, _ = net.SplitHostPort(urlParse.Host)
-	} else {
-		// Если пришло localhost:8080
+	urlParse, err := url.Parse(u)
+	if err != nil {
+		return nil, fmt.Errorf("parsing URL error: url: %s , err: %s", u, err)
+	}
+	if urlParse.Scheme == "" {
 		h = urlParse.Scheme
 		p = urlParse.Opaque
+	} else {
+		if (urlParse.Scheme == "http" || urlParse.Scheme == "https") && urlParse.Host != "" {
+			h, p, _ = net.SplitHostPort(urlParse.Host)
+		} else {
+			return nil, fmt.Errorf("protocol error: %s", urlParse.Scheme)
+		}
 	}
-
 	return &ConfigServer{
 		host: h,
 		port: p,
-	}
+	}, nil
 }
 
 func (cs *ConfigServer) Host() string {
@@ -52,8 +57,4 @@ func (cs *ConfigServer) Addr() string {
 
 func (cs *ConfigServer) URL() string {
 	return fmt.Sprintf("http://%s:%s", cs.Host(), cs.Port())
-}
-
-func (cs *ConfigServer) URLS() string {
-	return fmt.Sprintf("https://%s:%s", cs.Host(), cs.Port())
 }
