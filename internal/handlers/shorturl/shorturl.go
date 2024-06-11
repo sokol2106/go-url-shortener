@@ -82,6 +82,8 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 func ShortRouter(url string) chi.Router {

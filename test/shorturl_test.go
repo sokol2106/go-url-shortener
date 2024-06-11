@@ -45,9 +45,14 @@ func TestHandlerMain(t *testing.T) {
 			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
 			require.NoError(t, err)
-
 			response, err := server.Client().Do(request)
 			require.NoError(t, err)
+
+			//request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url))
+			//w := httptest.NewRecorder()
+			//sh := shorturl.NewShortURL("http://localhost:8080")
+			//sh.Post(w, request)
+			//response := w.Result()
 
 			status := assert.Equal(t, tt.wantPost.code, response.StatusCode)
 			content := assert.Equal(t, tt.wantPost.contentType, response.Header.Get("Content-Type"))
@@ -65,9 +70,14 @@ func TestHandlerMain(t *testing.T) {
 
 				request, err = http.NewRequest(http.MethodGet, server.URL+urlParse.Path, nil)
 				require.NoError(t, err)
-
 				response, err = server.Client().Do(request)
 				require.NoError(t, err)
+
+				//request := httptest.NewRequest(http.MethodGet, urlParse.Path, strings.NewReader(tt.url))
+				//request.SetPathValue("id", strings.ReplaceAll(urlParse.Path, "/", ""))
+				//w := httptest.NewRecorder()
+				//sh.Get(w, request)
+				//response := w.Result()
 
 				assert.Equal(t, tt.wantGet.code, response.StatusCode)
 				err = response.Body.Close()
