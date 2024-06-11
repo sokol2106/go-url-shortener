@@ -66,8 +66,6 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 	_, _ = fmt.Fprintf(w, "%s/%s", s.url, tshdata.Short())
-
-	return
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
