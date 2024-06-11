@@ -49,7 +49,7 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = config.NewConfigURL(string(body))
+	err = config.CheckURL(string(body))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

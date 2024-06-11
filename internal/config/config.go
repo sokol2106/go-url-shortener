@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -27,20 +28,31 @@ func NewConfigURL(u string) (*ConfigServer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing URL error: url: %s , err: %s", u, err)
 	}
-	if urlParse.Scheme == "" {
-		h = urlParse.Scheme
-		p = urlParse.Opaque
-	} else {
-		if (urlParse.Scheme == "http" || urlParse.Scheme == "https") && urlParse.Host != "" {
-			h, p, _ = net.SplitHostPort(urlParse.Host)
-		} else {
-			return nil, fmt.Errorf("protocol error: %s", urlParse.Scheme)
-		}
+
+	h = urlParse.Scheme
+	p = urlParse.Opaque
+
+	if (urlParse.Scheme == "http" || urlParse.Scheme == "https") && urlParse.Host != "" {
+		h, p, _ = net.SplitHostPort(urlParse.Host)
 	}
+
 	return &ConfigServer{
 		host: h,
 		port: p,
 	}, nil
+}
+
+func CheckURL(body string) error {
+	urlParse, err := url.Parse(body)
+	if err != nil {
+		return err
+	}
+
+	if urlParse.Scheme != "http" && urlParse.Scheme != "https" || urlParse.Host == "" {
+		return errors.New("invalid url")
+	}
+
+	return nil
 }
 
 func (cs *ConfigServer) Host() string {

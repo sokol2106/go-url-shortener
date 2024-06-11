@@ -86,6 +86,13 @@ func TestCheckPostHandlerMain(t *testing.T) {
 	}{
 		{
 			name: "Error httpss",
+			url:  "localhost:8080",
+			wantPost: strWant{
+				code: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Error httpss",
 			url:  "httpss://practicum.yandex.ru/",
 			wantPost: strWant{
 				code: http.StatusBadRequest,
@@ -102,19 +109,12 @@ func TestCheckPostHandlerMain(t *testing.T) {
 			name: "Error empty",
 			url:  "",
 			wantPost: strWant{
-				code: http.StatusCreated,
+				code: http.StatusBadRequest,
 			},
 		},
 		{
 			name: "success",
 			url:  "https://yandex.ru/maps/15/tula/?ll=37.617348%2C54.193122&z=13",
-			wantPost: strWant{
-				code: http.StatusCreated,
-			},
-		},
-		{
-			name: "success",
-			url:  "practicum.yandex.ru",
 			wantPost: strWant{
 				code: http.StatusCreated,
 			},
