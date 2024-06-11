@@ -29,12 +29,12 @@ func main() {
 	ParseFlags(&p.ServerAddress, &p.BaseAddress)
 	configServer, err := config.NewConfigURL(p.ServerAddress)
 	if err != nil {
-		fmt.Println("error creating server config: %s", err.Error())
+		fmt.Printf("error creating server config: %s", err.Error())
 		return
 	}
 	configBase, err := config.NewConfigURL(p.BaseAddress)
 	if err != nil {
-		fmt.Println("error creating server config base address: %s", err.Error())
+		fmt.Printf("error creating server config base address: %s", err.Error())
 		return
 	}
 	app.Run(configServer, configBase)
