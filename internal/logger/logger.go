@@ -55,6 +55,13 @@ func LoggingResponseRequest(handler http.Handler) http.HandlerFunc {
 
 		handler.ServeHTTP(&lw, r)
 
+		logger, err := zap.NewDevelopment()
+		if err != nil {
+			panic(err)
+		}
+		defer logger.Sync()
+		sugar = *logger.Sugar()
+
 		duration := time.Since(start)
 		sugar.Infoln(
 			"uri", r.RequestURI,

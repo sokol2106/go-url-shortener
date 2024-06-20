@@ -9,11 +9,10 @@ import (
 )
 
 func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer) {
+	logger.Init()
 	ser := server.NewServer(shorturl.ShortRouter(shCnf.URL()), bsCnf.Addr())
 	err := ser.Start()
 	if err != nil {
 		fmt.Printf("error starting server: %s", err)
 	}
-
-	logger.Init()
 }
