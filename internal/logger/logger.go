@@ -69,6 +69,10 @@ func LoggingResponseRequest(handler http.Handler) http.HandlerFunc {
 			"duration", duration,
 		)
 
+		sugar.Infoln(
+			"status", responseData.status,
+			"size", responseData.size,
+		)
 	})
 
 	return logFn
