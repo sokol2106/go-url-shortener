@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/config"
+	"github.com/sokol2106/go-url-shortener/internal/logger"
 	storage "github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
 	"math/rand"
@@ -35,62 +36,78 @@ func NewShortURL(u string) *ShortURL {
 	}
 }
 
-func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	err = config.CheckURL(string(body))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	hash := sha256.Sum256(body)
-	thash := hex.EncodeToString(hash[:])
-	tshdata, exist := s.tableshortdata[thash]
-	if !exist {
-		tshdata = storage.NewShortdata(string(body), randText(8))
-		s.tableshortdata[thash] = tshdata
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	_, _ = fmt.Fprintf(w, "%s/%s", s.url, tshdata.Short())
-}
-
-func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	path := chi.URLParam(r, "id")
-	for _, value := range s.tableshortdata {
-		if path == value.Short() {
-			w.Header().Set("Location", value.URL())
-			w.WriteHeader(http.StatusTemporaryRedirect)
+func (s *ShortURL) Post() http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		body, err := io.ReadAll(r.Body)
+		defer r.Body.Close()
+
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		err = config.CheckURL(string(body))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		hash := sha256.Sum256(body)
+		thash := hex.EncodeToString(hash[:])
+		tshdata, exist := s.tableshortdata[thash]
+		if !exist {
+			tshdata = storage.NewShortdata(string(body), randText(8))
+			s.tableshortdata[thash] = tshdata
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = fmt.Fprintf(w, "%s/%s", s.url, tshdata.Short())
 	}
 
-	w.WriteHeader(http.StatusBadRequest)
+	return http.HandlerFunc(fn)
+}
+
+func (s *ShortURL) Get() http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		path := chi.URLParam(r, "id")
+		for _, value := range s.tableshortdata {
+			if path == value.Short() {
+				w.Header().Set("Location", value.URL())
+				w.WriteHeader(http.StatusTemporaryRedirect)
+				return
+			}
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	return http.HandlerFunc(fn)
+}
+
+func (s *ShortURL) GetAll() http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	return http.HandlerFunc(fn)
 }
 
 func ShortRouter(url string) chi.Router {
 	router := chi.NewRouter()
 	sh := NewShortURL(url)
-	router.Post("/", sh.Post)
-	router.Get("/*", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusBadRequest) })
-	router.Get("/{id}", sh.Get)
+	router.Post("/", logger.LoggingResponseRequest(sh.Post()))
+	router.Get("/*", logger.LoggingResponseRequest(sh.GetAll()))
+	router.Get("/{id}", logger.LoggingResponseRequest(sh.Get()))
+
 	return router
 }

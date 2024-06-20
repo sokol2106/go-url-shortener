@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"github.com/sokol2106/go-url-shortener/internal/server"
 )
 
@@ -13,4 +14,6 @@ func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer) {
 	if err != nil {
 		fmt.Printf("error starting server: %s", err)
 	}
+
+	logger.Init()
 }

@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -19,6 +20,7 @@ type strWant struct {
 }
 
 func TestHandlerMain(t *testing.T) {
+	logger.Init()
 	tests := []struct {
 		name     string
 		url      string
@@ -89,6 +91,7 @@ func TestHandlerMain(t *testing.T) {
 }
 
 func TestCheckPostHandlerMain(t *testing.T) {
+	logger.Init()
 	tests := []struct {
 		name     string
 		url      string
