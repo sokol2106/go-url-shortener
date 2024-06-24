@@ -18,17 +18,6 @@ type (
 	}
 )
 
-var sugar zap.SugaredLogger
-
-func Init() {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	defer logger.Sync()
-	sugar = *logger.Sugar()
-}
-
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size // захватываем размер
@@ -59,8 +48,9 @@ func LoggingResponseRequest(handler http.Handler) http.HandlerFunc {
 		if err != nil {
 			panic(err)
 		}
+
 		defer logger.Sync()
-		sugar = *logger.Sugar()
+		sugar := logger.Sugar()
 
 		duration := time.Since(start)
 		sugar.Infoln(
