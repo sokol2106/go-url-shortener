@@ -3,6 +3,7 @@ package shorturl
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/config"
@@ -57,20 +58,9 @@ func (s *ShortURL) Post() http.Handler {
 			return
 		}
 
-		/*
-			hash := sha256.Sum256(body)
-			thash := hex.EncodeToString(hash[:])
-			tshdata, exist := s.tableshortdata[thash]
-			if !exist {
-				tshdata = storage.NewShortdata(string(body), randText(8))
-				s.tableshortdata[thash] = tshdata
-			}
-		*/
-
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprintf(w, s.addURL(string(body)))
-		//_, _ = fmt.Fprintf(w, "%s/%s", s.url, tshdata.Short())
 	}
 
 	return http.HandlerFunc(fn)
@@ -82,18 +72,6 @@ func (s *ShortURL) Get() http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		/*
-			path := chi.URLParam(r, "id")
-			for _, value := range s.tableshortdata {
-				if path == value.Short() {
-					w.Header().Set("Location", value.URL())
-					w.WriteHeader(http.StatusTemporaryRedirect)
-					return
-				}
-			}
-
-		*/
 
 		path := chi.URLParam(r, "id")
 		URL := s.getURL(path)
@@ -118,9 +96,39 @@ func (s *ShortURL) GetAll() http.Handler {
 
 func (s *ShortURL) PostJSON() http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
+		if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
 			w.WriteHeader(http.StatusBadRequest)
 		}
+
+		body, err := io.ReadAll(r.Body)
+		defer r.Body.Close()
+
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var (
+			reqJS RequestJSON
+			resJS ResponseJSON
+		)
+
+		err = json.Unmarshal(body, &reqJS)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		resJS.Result = s.addURL(reqJS.URL)
+
+		resBody, err := json.Marshal(resJS)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = fmt.Fprintf(w, string(resBody))
 	}
 
 	return http.HandlerFunc(fn)

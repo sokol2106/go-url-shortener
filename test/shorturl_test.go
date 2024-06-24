@@ -47,7 +47,6 @@ func TestHandlerMain(t *testing.T) {
 			defer server.Close()
 
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
-			request.Header.Set("Content-Type", tt.wantPost.contentType)
 			require.NoError(t, err)
 
 			response, err := server.Client().Do(request)
@@ -63,11 +62,7 @@ func TestHandlerMain(t *testing.T) {
 				err = response.Body.Close()
 				require.NoError(t, err)
 
-				var respJS RequestJSON
-				err = json.Unmarshal(resBody, &respJS)
-				require.NoError(t, err)
-
-				urlParse, err := url.Parse(respJS.Result)
+				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
 				// Проверяем Get запрос
@@ -174,6 +169,7 @@ func TestPostJSONHandlerMain(t *testing.T) {
 			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
 			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", server.URL, "/api/shorten"), strings.NewReader(tt.body))
+			request.Header.Set("Content-Type", tt.wantPost.contentType)
 			require.NoError(t, err)
 			response, err := server.Client().Do(request)
 			require.NoError(t, err)
@@ -181,13 +177,19 @@ func TestPostJSONHandlerMain(t *testing.T) {
 			status := assert.Equal(t, tt.wantPost.code, response.StatusCode)
 			content := assert.Equal(t, tt.wantPost.contentType, response.Header.Get("Content-Type"))
 			if status && content {
+
+				//
 				resBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
 
 				err = response.Body.Close()
 				require.NoError(t, err)
 
-				urlParse, err := url.Parse(string(resBody))
+				var respJS shorturl.ResponseJSON
+				err = json.Unmarshal(resBody, &respJS)
+				require.NoError(t, err)
+
+				urlParse, err := url.Parse(respJS.Result)
 				require.NoError(t, err)
 
 				// Проверяем Get запрос
