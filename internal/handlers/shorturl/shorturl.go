@@ -60,7 +60,9 @@ func (s *ShortURL) Post() http.Handler {
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, s.addURL(string(body)))
+		res := s.addURL(string(body))
+		w.Write([]byte(res))
+		//_, _ = fmt.Fprintf(w, s.addURL(string(body)))
 	}
 
 	return http.HandlerFunc(fn)
@@ -128,7 +130,8 @@ func (s *ShortURL) PostJSON() http.Handler {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, string(resBody))
+		w.Write(resBody)
+		//_, _ = fmt.Fprintf(w, string(resBody))
 	}
 
 	return http.HandlerFunc(fn)
@@ -141,10 +144,9 @@ func (s *ShortURL) addURL(url string) string {
 	if !exist {
 		tshdata = storage.NewShortdata(url, randText(8))
 		s.tableshortdata[thash] = tshdata
-		return fmt.Sprintf("%s/%s", s.url, tshdata.Short())
 	}
 
-	return ""
+	return fmt.Sprintf("%s/%s", s.url, tshdata.Short())
 }
 
 func (s *ShortURL) getURL(shURL string) string {
