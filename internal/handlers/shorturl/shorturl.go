@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/config"
+	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	storage "github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
@@ -139,13 +140,12 @@ func (s *ShortURL) getURL(shURL string) string {
 func ShortRouter(url string) chi.Router {
 	router := chi.NewRouter()
 	sh := NewShortURL(url)
-	//router.Post("/", logger.LoggingResponseRequest(sh.Post()))
-	//router.Post("/api/shorten", logger.LoggingResponseRequest(sh.PostJSON()))
-	//router.Get("/*", logger.LoggingResponseRequest(sh.GetAll()))
-	//router.Get("/{id}", logger.LoggingResponseRequest(sh.Get()))
 
+	// middleware
 	router.Use(logger.LoggingResponseRequest)
+	router.Use(gzip.СompressionResponseRequest)
 
+	// router
 	router.Post("/", http.HandlerFunc(sh.Post))
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
