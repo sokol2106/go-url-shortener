@@ -25,11 +25,6 @@ func randText(size int) string {
 	return string(b)
 }
 
-type ShortURL struct {
-	url            string
-	tableshortdata map[string]*storage.Shortdata
-}
-
 func NewShortURL(u string) *ShortURL {
 	return &ShortURL{
 		url:            u,
@@ -37,104 +32,87 @@ func NewShortURL(u string) *ShortURL {
 	}
 }
 
-func (s *ShortURL) Post() http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		body, err := io.ReadAll(r.Body)
-		defer r.Body.Close()
-
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		err = config.CheckURL(string(body))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
-		res := s.addURL(string(body))
-		w.Write([]byte(res))
-		//_, _ = fmt.Fprintf(w, s.addURL(string(body)))
+func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	return http.HandlerFunc(fn)
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = config.CheckURL(string(body))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
+	res := s.addURL(string(body))
+	w.Write([]byte(res))
 }
 
-func (s *ShortURL) Get() http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-		path := chi.URLParam(r, "id")
-		URL := s.getURL(path)
-		if URL != "" {
-			w.Header().Set("Location", URL)
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			return
-		}
+	path := chi.URLParam(r, "id")
+	URL := s.getURL(path)
+	if URL != "" {
+		w.Header().Set("Location", URL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
+		return
+	}
 
+	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
-	return http.HandlerFunc(fn)
-}
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 
-func (s *ShortURL) GetAll() http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var (
+		reqJS RequestJSON
+		resJS ResponseJSON
+	)
+
+	err = json.Unmarshal(body, &reqJS)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resJS.Result = s.addURL(reqJS.URL)
+
+	resBody, err := json.Marshal(resJS)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	return http.HandlerFunc(fn)
-}
 
-func (s *ShortURL) PostJSON() http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		body, err := io.ReadAll(r.Body)
-		defer r.Body.Close()
-
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		var (
-			reqJS RequestJSON
-			resJS ResponseJSON
-		)
-
-		err = json.Unmarshal(body, &reqJS)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		resJS.Result = s.addURL(reqJS.URL)
-
-		resBody, err := json.Marshal(resJS)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		w.Write(resBody)
-		//_, _ = fmt.Fprintf(w, string(resBody))
-	}
-
-	return http.HandlerFunc(fn)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resBody)
 }
 
 func (s *ShortURL) addURL(url string) string {
@@ -161,10 +139,17 @@ func (s *ShortURL) getURL(shURL string) string {
 func ShortRouter(url string) chi.Router {
 	router := chi.NewRouter()
 	sh := NewShortURL(url)
-	router.Post("/", logger.LoggingResponseRequest(sh.Post()))
-	router.Post("/api/shorten", logger.LoggingResponseRequest(sh.PostJSON()))
-	router.Get("/*", logger.LoggingResponseRequest(sh.GetAll()))
-	router.Get("/{id}", logger.LoggingResponseRequest(sh.Get()))
+	//router.Post("/", logger.LoggingResponseRequest(sh.Post()))
+	//router.Post("/api/shorten", logger.LoggingResponseRequest(sh.PostJSON()))
+	//router.Get("/*", logger.LoggingResponseRequest(sh.GetAll()))
+	//router.Get("/{id}", logger.LoggingResponseRequest(sh.Get()))
+
+	router.Use(logger.LoggingResponseRequest)
+
+	router.Post("/", http.HandlerFunc(sh.Post))
+	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
+	router.Get("/*", http.HandlerFunc(sh.GetAll))
+	router.Get("/{id}", http.HandlerFunc(sh.Get))
 
 	return router
 }
