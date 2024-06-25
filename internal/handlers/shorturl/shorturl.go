@@ -142,8 +142,8 @@ func ShortRouter(url string) chi.Router {
 	sh := NewShortURL(url)
 
 	// middleware
-	router.Use(logger.LoggingResponseRequest)
 	router.Use(gzip.СompressionResponseRequest)
+	router.Use(logger.LoggingResponseRequest)
 
 	// router
 	router.Post("/", http.HandlerFunc(sh.Post))

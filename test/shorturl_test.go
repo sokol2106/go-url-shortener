@@ -20,7 +20,7 @@ type strWant struct {
 	contentType string
 }
 
-func TestHandlerMain(t *testing.T) {
+func TestShortURL(t *testing.T) {
 	tests := []struct {
 		name     string
 		url      string
@@ -81,7 +81,7 @@ func TestHandlerMain(t *testing.T) {
 	}
 }
 
-func TestCheckPostHandlerMain(t *testing.T) {
+func TestShortURLCheckPost(t *testing.T) {
 	tests := []struct {
 		name     string
 		url      string
@@ -142,7 +142,7 @@ func TestCheckPostHandlerMain(t *testing.T) {
 	}
 }
 
-func TestPostJSONHandlerMain(t *testing.T) {
+func TestPostJSON(t *testing.T) {
 	tests := []struct {
 		name     string
 		body     string
@@ -207,3 +207,70 @@ func TestPostJSONHandlerMain(t *testing.T) {
 		})
 	}
 }
+
+/*
+func TestGzipCompression(t *testing.T) {
+	server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
+	defer server.Close()
+
+	tests := struct {
+		name     string
+		url      string
+		wantPost strWant
+		wantGet  strWant
+	}{
+		name: "Test redirect GZIP",
+		url:  "https://practicum.yandex.ru/",
+		wantPost: strWant{
+			code:        http.StatusCreated,
+			contentType: "text/plain",
+		},
+		wantGet: strWant{
+			code:        http.StatusOK,
+			contentType: "text/plain",
+		},
+	}
+
+	t.Run(tests.name, func(t *testing.T) {
+		// Проверяем Post запрос
+		server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
+		defer server.Close()
+
+		request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
+		require.NoError(t, err)
+
+		response, err := server.Client().Do(request)
+		require.NoError(t, err)
+
+		status := assert.Equal(t, tests.wantPost.code, response.StatusCode)
+		content := assert.Equal(t, tests.wantPost.contentType, response.Header.Get("Content-Type"))
+
+		if status && content {
+			resBody, err := io.ReadAll(response.Body)
+			require.NoError(t, err)
+
+			err = response.Body.Close()
+			require.NoError(t, err)
+
+			urlParse, err := url.Parse(string(resBody))
+			require.NoError(t, err)
+
+			// Проверяем Get запрос
+
+			request, err = http.NewRequest(http.MethodGet, server.URL+urlParse.Path, nil)
+			require.NoError(t, err)
+			response, err = server.Client().Do(request)
+			require.NoError(t, err)
+
+			assert.Equal(t, tests.wantGet.code, response.StatusCode)
+			err = response.Body.Close()
+			require.NoError(t, err)
+
+		}
+	}
+
+
+
+}
+
+*/

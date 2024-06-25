@@ -28,6 +28,7 @@ func (c *compressResponseWriter) WriteHeader(statusCode int) {
 	if statusCode < 300 {
 		c.rw.Header().Set("Content-Encoding", "gzip")
 	}
+
 	c.rw.WriteHeader(statusCode)
 }
 
@@ -63,33 +64,32 @@ func (c *compressReader) Close() error {
 func СompressionResponseRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		ow := w
+		response := w
 
-		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
+		// Write
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		if supportsGzip {
 
 			cw := newCompressResponseWriter(w)
-			ow = cw
+			response = cw
 			defer cw.Close()
 		}
 
-		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
+		// Read
 		contentEncoding := r.Header.Get("Content-Encoding")
 		sendsGzip := strings.Contains(contentEncoding, "gzip")
 		if sendsGzip {
-			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			// меняем тело запроса на новое
+
 			r.Body = cr
 			defer cr.Close()
 		}
 
-		handler.ServeHTTP(ow, r)
+		handler.ServeHTTP(response, r)
 	})
 }
