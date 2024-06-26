@@ -23,6 +23,10 @@ type strWant struct {
 }
 
 func TestShortURL(t *testing.T) {
+	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	defer server.Close()
+
 	tests := []struct {
 		name     string
 		url      string
@@ -45,9 +49,6 @@ func TestShortURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
-			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
-			defer server.Close()
-
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
 			require.NoError(t, err)
 
@@ -84,6 +85,10 @@ func TestShortURL(t *testing.T) {
 }
 
 func TestShortURLCheckPost(t *testing.T) {
+	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	defer server.Close()
+
 	tests := []struct {
 		name     string
 		url      string
@@ -128,9 +133,6 @@ func TestShortURLCheckPost(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
-
-			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
-			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
 			require.NoError(t, err)
 
@@ -145,6 +147,10 @@ func TestShortURLCheckPost(t *testing.T) {
 }
 
 func TestPostJSON(t *testing.T) {
+	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	defer server.Close()
+
 	tests := []struct {
 		name     string
 		body     string
@@ -168,8 +174,6 @@ func TestPostJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Проверяем Post запрос
-			server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
-			defer server.Close()
 			request, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s%s", server.URL, "/api/shorten"), strings.NewReader(tt.body))
 			request.Header.Set("Content-Type", tt.wantPost.contentType)
 			require.NoError(t, err)
@@ -179,8 +183,6 @@ func TestPostJSON(t *testing.T) {
 			status := assert.Equal(t, tt.wantPost.code, response.StatusCode)
 			content := assert.Equal(t, tt.wantPost.contentType, response.Header.Get("Content-Type"))
 			if status && content {
-
-				//
 				resBody, err := io.ReadAll(response.Body)
 				require.NoError(t, err)
 
@@ -211,7 +213,8 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
+	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	server := httptest.NewServer(shorturl.ShortRouter(sh))
 	defer server.Close()
 
 	tests := struct {
