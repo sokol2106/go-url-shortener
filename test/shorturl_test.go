@@ -1,6 +1,8 @@
 package test
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
@@ -208,7 +210,6 @@ func TestPostJSON(t *testing.T) {
 	}
 }
 
-/*
 func TestGzipCompression(t *testing.T) {
 	server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
 	defer server.Close()
@@ -232,11 +233,18 @@ func TestGzipCompression(t *testing.T) {
 	}
 
 	t.Run(tests.name, func(t *testing.T) {
-		// Проверяем Post запрос
-		server := httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
-		defer server.Close()
+		encodeBuffer := bytes.NewBuffer(nil)
+		writeGZip := gzip.NewWriter(encodeBuffer)
 
-		request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
+		_, err := writeGZip.Write([]byte(tests.url))
+		require.NoError(t, err)
+
+		err = writeGZip.Close()
+		require.NoError(t, err)
+
+		request, err := http.NewRequest(http.MethodPost, server.URL, encodeBuffer)
+		request.Header.Set("Content-Encoding", "gzip")
+		request.Header.Set("Accept-Encoding", "gzip")
 		require.NoError(t, err)
 
 		response, err := server.Client().Do(request)
@@ -246,13 +254,16 @@ func TestGzipCompression(t *testing.T) {
 		content := assert.Equal(t, tests.wantPost.contentType, response.Header.Get("Content-Type"))
 
 		if status && content {
-			resBody, err := io.ReadAll(response.Body)
+			readGZip, err := gzip.NewReader(response.Body)
 			require.NoError(t, err)
 
 			err = response.Body.Close()
 			require.NoError(t, err)
 
-			urlParse, err := url.Parse(string(resBody))
+			bodyDecode, err := io.ReadAll(readGZip)
+			require.NoError(t, err)
+
+			urlParse, err := url.Parse(string(bodyDecode))
 			require.NoError(t, err)
 
 			// Проверяем Get запрос
@@ -267,10 +278,5 @@ func TestGzipCompression(t *testing.T) {
 			require.NoError(t, err)
 
 		}
-	}
-
-
-
+	})
 }
-
-*/
