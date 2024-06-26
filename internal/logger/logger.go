@@ -65,5 +65,4 @@ func LoggingResponseRequest(handler http.Handler) http.Handler {
 		)
 	})
 
-	//return logFn
 }
