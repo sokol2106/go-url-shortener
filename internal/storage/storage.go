@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -14,18 +15,6 @@ import (
 
 func NewShortData(uuid string, short_url string, original_url string) *ShortData {
 	return &ShortData{uuid, short_url, original_url}
-}
-
-func (sd *ShortData) UUID() string {
-	return sd.uuid
-}
-
-func (sd *ShortData) Short() string {
-	return sd.short_url
-}
-
-func (sd *ShortData) Original() string {
-	return sd.original_url
 }
 
 // ShortDatalList
@@ -43,6 +32,7 @@ func (s *ShortDatalList) Init(filename string) {
 		s.flagWriteFile = true
 		s.encoder = json.NewEncoder(newFile)
 		s.file = newFile
+		s.LoadDateFile()
 	}
 }
 
@@ -51,11 +41,22 @@ func (s *ShortDatalList) Close() error {
 }
 
 func (s *ShortDatalList) LoadDateFile() {
-	//reader := bufio.NewReader(s.file)
-	//data, err := reader.ReadBytes('\n')
-	//if err != nil {
-	//		return
-	//	}
+	if !s.flagWriteFile {
+		return
+	}
+
+	sd := &ShortData{}
+	scanner := bufio.NewScanner(s.file)
+	for scanner.Scan() {
+		data := scanner.Bytes()
+		err := json.Unmarshal(data, &sd)
+		if err != nil {
+			fmt.Printf("error Unmarshal file error: %s", err)
+			return
+		}
+		s.mapData[sd.Uuid] = sd
+		sd = &ShortData{}
+	}
 }
 
 func (s *ShortDatalList) AddURL(originalURL string) string {
@@ -63,35 +64,23 @@ func (s *ShortDatalList) AddURL(originalURL string) string {
 	thash := hex.EncodeToString(hash[:])
 	tshdata, exist := s.mapData[thash]
 	if !exist {
-		tshdata = NewShortData(thash, RandText(8), originalURL)
+		tshdata = &ShortData{thash, RandText(8), originalURL}
 		s.mapData[thash] = tshdata
 
 		if s.flagWriteFile {
-			//	data, err := json.Marshal(tshdata)
-			//	if err != nil {
-			//		fmt.Printf("error Marshal json , error: %s", err)
-			//	}
-
-			/*	if _, err := s.writerBuffer.Write(data); err != nil {
-					fmt.Printf("error write json file filename: %s , error: %s", s.file.Name(), err)
-				}
-
-				if err := s.writerBuffer.WriteByte('\n'); err != nil {
-					fmt.Printf("error write 'n' file filename: %s , error: %s", s.file.Name(), err)
-				}
-
-				s.writerBuffer.Flush()
-			*/
+			if err := s.encoder.Encode(&tshdata); err != nil {
+				fmt.Printf("error write json file filename: %s , error: %s", s.file.Name(), err)
+			}
 		}
 	}
 
-	return tshdata.Short()
+	return tshdata.Short_url
 }
 
 func (s *ShortDatalList) GetURL(shURL string) string {
 	for _, value := range s.mapData {
-		if shURL == value.Short() {
-			return value.Original()
+		if shURL == value.Short_url {
+			return value.Original_url
 		}
 	}
 	return ""

@@ -23,7 +23,7 @@ type strWant struct {
 }
 
 func TestShortURL(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	sh := shorturl.NewShortURL("http://localhost:8080", "")
 	server := httptest.NewServer(shorturl.ShortRouter(sh))
 	defer server.Close()
 
@@ -85,7 +85,7 @@ func TestShortURL(t *testing.T) {
 }
 
 func TestShortURLCheckPost(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	sh := shorturl.NewShortURL("http://localhost:8080", "")
 	server := httptest.NewServer(shorturl.ShortRouter(sh))
 	defer server.Close()
 
@@ -147,7 +147,7 @@ func TestShortURLCheckPost(t *testing.T) {
 }
 
 func TestPostJSON(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	sh := shorturl.NewShortURL("http://localhost:8080", "")
 	server := httptest.NewServer(shorturl.ShortRouter(sh))
 	defer server.Close()
 
@@ -213,7 +213,7 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "D:\\json-gg.json")
+	sh := shorturl.NewShortURL("http://localhost:8080", "")
 	server := httptest.NewServer(shorturl.ShortRouter(sh))
 	defer server.Close()
 
