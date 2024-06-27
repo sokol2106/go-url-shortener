@@ -54,7 +54,7 @@ func (s *ShortDatalList) LoadDateFile() {
 			fmt.Printf("error Unmarshal file error: %s", err)
 			return
 		}
-		s.mapData[sd.Uuid] = sd
+		s.mapData[sd.UUID] = sd
 		sd = &ShortData{}
 	}
 }
@@ -74,13 +74,13 @@ func (s *ShortDatalList) AddURL(originalURL string) string {
 		}
 	}
 
-	return tshdata.Short_url
+	return tshdata.ShortURL
 }
 
 func (s *ShortDatalList) GetURL(shURL string) string {
 	for _, value := range s.mapData {
-		if shURL == value.Short_url {
-			return value.Original_url
+		if shURL == value.ShortURL {
+			return value.OriginalURL
 		}
 	}
 	return ""

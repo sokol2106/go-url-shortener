@@ -6,9 +6,9 @@ import (
 )
 
 type ShortData struct {
-	Uuid         string `json:"uuid"`
-	Short_url    string `json:"short_url"`
-	Original_url string `json:"original_url"`
+	UUID        string `json:"uuid"`
+	ShortURL    string `json:"shortURL"`
+	OriginalURL string `json:"originalURL"`
 }
 
 type ShortDatalList struct {
