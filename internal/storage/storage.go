@@ -11,12 +11,6 @@ import (
 	"time"
 )
 
-// ShortData
-
-func NewShortData(UUID string, shortURL string, originalURL string) *ShortData {
-	return &ShortData{UUID, shortURL, originalURL}
-}
-
 // ShortDatalList
 
 func (s *ShortDatalList) Init(filename string) {
@@ -84,6 +78,10 @@ func (s *ShortDatalList) GetURL(shURL string) string {
 		}
 	}
 	return ""
+}
+
+func (s *ShortDatalList) GetListShortData() map[string]*ShortData {
+	return s.mapData
 }
 
 func RandText(size int) string {

@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 )
@@ -282,4 +284,66 @@ func TestGzipCompression(t *testing.T) {
 
 		}
 	})
+}
+
+func TestFileReadWrite(t *testing.T) {
+	fileName := "hort-url-db.json"
+	sh := shorturl.NewShortURL("http://localhost:8080", fileName)
+	server := httptest.NewServer(shorturl.ShortRouter(sh))
+
+	tests := []struct {
+		name     string
+		url      string
+		wantPost strWant
+	}{
+		{
+			name: "Test file Read/Write",
+			url:  "https://practicum.yandex.ru/",
+			wantPost: strWant{
+				code:        http.StatusCreated,
+				contentType: "text/plain",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Проверяем Post запрос
+			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
+			require.NoError(t, err)
+
+			response, err := server.Client().Do(request)
+			require.NoError(t, err)
+
+			status := assert.Equal(t, tt.wantPost.code, response.StatusCode)
+			content := assert.Equal(t, tt.wantPost.contentType, response.Header.Get("Content-Type"))
+
+			if status && content {
+				resBody, err := io.ReadAll(response.Body)
+				require.NoError(t, err)
+
+				err = response.Body.Close()
+				require.NoError(t, err)
+
+				server.Close()
+				err = sh.Close()
+				require.NoError(t, err)
+
+				urlParse, err := url.Parse(string(resBody))
+				require.NoError(t, err)
+
+				str := storage.ShortDatalList{}
+				str.Init(fileName)
+				str.LoadDateFile()
+
+				resURL := str.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
+				assert.Equal(t, tt.url, resURL)
+
+				err = str.Close()
+				require.NoError(t, err)
+
+				err = os.Remove(fileName)
+				require.NoError(t, err)
+			}
+		})
+	}
 }

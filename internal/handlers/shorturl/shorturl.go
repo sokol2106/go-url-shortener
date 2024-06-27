@@ -102,6 +102,10 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
+func (s *ShortURL) Close() error {
+	return s.shortDataList.Close()
+}
+
 func ShortRouter(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
 
