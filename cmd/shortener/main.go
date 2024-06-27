@@ -9,16 +9,19 @@ import (
 
 const CServerAddress = "localhost:8080"
 const CBaseAddress = "localhost:8080"
+const СFileStoragePath = "/tmp/short-url-db.json"
 
 type params struct {
-	ServerAddress string
-	BaseAddress   string
+	ServerAddress   string
+	BaseAddress     string
+	FileStoragePath string
 }
 
 func main() {
 	p := params{
-		ServerAddress: os.Getenv("SERVER_ADDRESS"),
-		BaseAddress:   os.Getenv("BASE_URL"),
+		ServerAddress:   os.Getenv("SERVER_ADDRESS"),
+		BaseAddress:     os.Getenv("BASE_URL"),
+		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
 	}
 	if p.ServerAddress == "" {
 		p.ServerAddress = CServerAddress
@@ -26,7 +29,10 @@ func main() {
 	if p.BaseAddress == "" {
 		p.BaseAddress = CBaseAddress
 	}
-	ParseFlags(&p.ServerAddress, &p.BaseAddress)
+	if p.FileStoragePath == "" {
+		p.FileStoragePath = СFileStoragePath
+	}
+	ParseFlags(&p)
 	configServer, err := config.NewConfigURL(p.ServerAddress)
 	if err != nil {
 		fmt.Printf("error creating server config: %s", err.Error())
@@ -37,5 +43,5 @@ func main() {
 		fmt.Printf("error creating server config base address: %s", err.Error())
 		return
 	}
-	app.Run(configServer, configBase)
+	app.Run(configServer, configBase, p.FileStoragePath)
 }

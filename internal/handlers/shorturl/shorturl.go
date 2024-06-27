@@ -1,36 +1,21 @@
 package shorturl
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
-	storage "github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
-	"math/rand"
 	"net/http"
-	"time"
 )
 
-func randText(size int) string {
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	b := make([]rune, size)
-	for i := range b {
-		b[i] = letterRunes[r.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
-
-func NewShortURL(u string) *ShortURL {
-	return &ShortURL{
-		url:            u,
-		tableshortdata: make(map[string]*storage.Shortdata),
-	}
+func NewShortURL(redirectURL string, fileStoragePath string) *ShortURL {
+	s := new(ShortURL)
+	s.redirectURL = redirectURL
+	s.shortDataList.Init(fileStoragePath)
+	return s
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
@@ -55,8 +40,8 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	res := s.addURL(string(body))
-	w.Write([]byte(res))
+	res := s.shortDataList.AddURL(string(body))
+	w.Write([]byte(fmt.Sprintf("%s/%s", s.redirectURL, res)))
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +51,7 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := chi.URLParam(r, "id")
-	URL := s.getURL(path)
+	URL := s.shortDataList.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -104,7 +89,8 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resJS.Result = s.addURL(reqJS.URL)
+	res := s.shortDataList.AddURL(reqJS.URL)
+	resJS.Result = fmt.Sprintf("%s/%s", s.redirectURL, res)
 
 	resBody, err := json.Marshal(resJS)
 	if err != nil {
@@ -116,30 +102,12 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
-func (s *ShortURL) addURL(url string) string {
-	hash := sha256.Sum256([]byte(url))
-	thash := hex.EncodeToString(hash[:])
-	tshdata, exist := s.tableshortdata[thash]
-	if !exist {
-		tshdata = storage.NewShortdata(url, randText(8))
-		s.tableshortdata[thash] = tshdata
-	}
-
-	return fmt.Sprintf("%s/%s", s.url, tshdata.Short())
+func (s *ShortURL) Close() error {
+	return s.shortDataList.Close()
 }
 
-func (s *ShortURL) getURL(shURL string) string {
-	for _, value := range s.tableshortdata {
-		if shURL == value.Short() {
-			return value.URL()
-		}
-	}
-	return ""
-}
-
-func ShortRouter(url string) chi.Router {
+func ShortRouter(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
-	sh := NewShortURL(url)
 
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)

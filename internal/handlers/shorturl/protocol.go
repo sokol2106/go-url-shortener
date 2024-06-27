@@ -5,8 +5,8 @@ import (
 )
 
 type ShortURL struct {
-	url            string
-	tableshortdata map[string]*storage.Shortdata
+	redirectURL   string
+	shortDataList storage.ShortDatalList
 }
 
 type RequestJSON struct {
