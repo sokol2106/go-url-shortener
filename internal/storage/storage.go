@@ -13,8 +13,8 @@ import (
 
 // ShortData
 
-func NewShortData(uuid string, short_url string, original_url string) *ShortData {
-	return &ShortData{uuid, short_url, original_url}
+func NewShortData(UUID string, shortURL string, originalURL string) *ShortData {
+	return &ShortData{UUID, shortURL, originalURL}
 }
 
 // ShortDatalList
