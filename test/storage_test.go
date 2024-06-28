@@ -14,7 +14,7 @@ func TestStorage(t *testing.T) {
 
 	fileName := "testStorage.json"
 	shortDataList.Init(fileName)
-	shortDataTest := model.ShortData{"testUUID", "", "testOriginalURL"}
+	shortDataTest := model.ShortData{UUID: "testUUID", OriginalURL: "testOriginalURL"}
 
 	t.Run("testStorage", func(t *testing.T) {
 		// Проверяем сокращение и получение URL

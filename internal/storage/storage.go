@@ -77,7 +77,7 @@ func (s *ShortDataList) AddURL(originalURL string) string {
 func (s *ShortDataList) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
 	shortData, exist := s.mapData[hash]
 	if !exist {
-		shortData = model.ShortData{hash, RandText(8), url}
+		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
 		s.mapData[hash] = shortData
 	}
 	return &shortData, !exist
