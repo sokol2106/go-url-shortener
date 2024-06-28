@@ -345,9 +345,8 @@ func TestFileReadWrite(t *testing.T) {
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
-				str := storage.ShortDatalList{}
+				str := storage.ShortDataList{}
 				str.Init(fileName)
-				str.LoadDateFile()
 
 				resURL := str.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)

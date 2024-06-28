@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/app"
 	"github.com/sokol2106/go-url-shortener/internal/config"
+	"log"
 	"os"
 )
 
@@ -35,12 +35,12 @@ func main() {
 	ParseFlags(&p)
 	configServer, err := config.NewConfigURL(p.ServerAddress)
 	if err != nil {
-		fmt.Printf("error creating server config: %s", err.Error())
+		log.Printf("Creating server config error: %s", err.Error())
 		return
 	}
 	configBase, err := config.NewConfigURL(p.BaseAddress)
 	if err != nil {
-		fmt.Printf("error creating server config base address: %s", err.Error())
+		log.Printf("Creating server config base address error: %s", err.Error())
 		return
 	}
 	app.Run(configServer, configBase, p.FileStoragePath)

@@ -11,9 +11,9 @@ type ShortData struct {
 	OriginalURL string `json:"originalURL"`
 }
 
-type ShortDatalList struct {
-	mapData       map[string]*ShortData
+type ShortDataList struct {
+	mapData       map[string]ShortData
 	file          *os.File
 	encoder       *json.Encoder
-	flagWriteFile bool
+	isWriteEnable bool
 }

@@ -6,7 +6,7 @@ import (
 
 type ShortURL struct {
 	redirectURL   string
-	shortDataList storage.ShortDatalList
+	shortDataList storage.ShortDataList
 }
 
 type RequestJSON struct {

@@ -8,6 +8,7 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -18,22 +19,37 @@ func NewShortURL(redirectURL string, fileStoragePath string) *ShortURL {
 	return s
 }
 
-func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+func (s *ShortURL) createRedirectURL(w http.ResponseWriter, url string) string {
+	err := config.CheckURL(url)
+	if err != nil {
+		log.Printf("error CheckURL error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
-		return
+		return ""
 	}
 
+	w.WriteHeader(http.StatusCreated)
+	res := s.shortDataList.AddURL(url)
+	return fmt.Sprintf("%s/%s", s.redirectURL, res)
+}
+
+func (s *ShortURL) handlerError(w http.ResponseWriter, content string, err error) {
+	log.Printf("%s error: %s", content, err)
+	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
+		log.Printf("ReadAll body error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = config.CheckURL(string(body))
 	if err != nil {
+		log.Printf("error CheckURL error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -45,11 +61,6 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	path := chi.URLParam(r, "id")
 	URL := s.shortDataList.GetURL(path)
 	if URL != "" {
@@ -66,7 +77,7 @@ func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
+	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -74,6 +85,7 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
+		log.Printf("ReadAll body error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -85,6 +97,7 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &reqJS)
 	if err != nil {
+		log.Printf("Unmarshal body error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -94,6 +107,7 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 
 	resBody, err := json.Marshal(resJS)
 	if err != nil {
+		log.Printf("Marshal body error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
