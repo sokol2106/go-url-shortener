@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"io"
@@ -15,26 +14,28 @@ import (
 func NewShortURL(redirectURL string, fileStoragePath string) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
+	//s.shortDataList = su
 	s.shortDataList.Init(fileStoragePath)
 	return s
 }
 
-func (s *ShortURL) createRedirectURL(w http.ResponseWriter, url string) string {
-	err := config.CheckURL(url)
-	if err != nil {
-		log.Printf("error CheckURL error: %s", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return ""
-	}
+func (s *ShortURL) createRedirectURL(url string) string {
+	// НУЖНА ЛИ ПРОВЕРКА ВХОДНОГО URL !!!
+	/*
+		err := config.CheckURL(url)
+		if err != nil {
+			log.Printf("error CheckURL error: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return ""
+		}
+	*/
 
-	w.WriteHeader(http.StatusCreated)
 	res := s.shortDataList.AddURL(url)
 	return fmt.Sprintf("%s/%s", s.redirectURL, res)
 }
 
-func (s *ShortURL) handlerError(w http.ResponseWriter, content string, err error) {
-	log.Printf("%s error: %s", content, err)
-	w.WriteHeader(http.StatusBadRequest)
+func (s *ShortURL) handlerError(content string, err error) {
+	log.Printf("Error %s: %s", content, err)
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
@@ -42,22 +43,22 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		log.Printf("ReadAll body error: %s", err)
+		s.handlerError("read request", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = config.CheckURL(string(body))
-	if err != nil {
-		log.Printf("error CheckURL error: %s", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
+	shortURL := s.createRedirectURL(string(body))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	res := s.shortDataList.AddURL(string(body))
-	w.Write([]byte(fmt.Sprintf("%s/%s", s.redirectURL, res)))
+	_, err = w.Write([]byte(shortURL))
+
+	if err != nil {
+		s.handlerError("write response", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {

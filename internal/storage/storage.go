@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/model"
 	"log"
 	"math/big"
 	"os"
@@ -15,7 +16,7 @@ import (
 // ShortDataList
 
 func (s *ShortDataList) Init(filename string) {
-	s.mapData = make(map[string]ShortData)
+	s.mapData = make(map[string]model.ShortData)
 	s.isWriteEnable = false
 	if filename != "" {
 		newFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -27,7 +28,7 @@ func (s *ShortDataList) Init(filename string) {
 		s.isWriteEnable = true
 		s.encoder = json.NewEncoder(newFile)
 		s.file = newFile
-		s.LoadDataFile()
+		s.loadDataFile()
 	}
 }
 
@@ -35,22 +36,22 @@ func (s *ShortDataList) Close() error {
 	return s.file.Close()
 }
 
-func (s *ShortDataList) LoadDataFile() {
+func (s *ShortDataList) loadDataFile() {
 	scanner := bufio.NewScanner(s.file)
 	for scanner.Scan() {
 		data := scanner.Bytes()
-		sd := ShortData{}
+		sd := model.ShortData{}
 		err := json.Unmarshal(data, &sd)
 		if err != nil {
 			fmt.Printf("error Unmarshal file error: %s", err)
 			return
 		}
 		s.mapData[sd.UUID] = sd
-		sd = ShortData{}
+		sd = model.ShortData{}
 	}
 }
 
-func (s *ShortDataList) GetListShortData() map[string]ShortData {
+func (s *ShortDataList) GetListShortData() map[string]model.ShortData {
 	return s.mapData
 }
 
@@ -73,16 +74,16 @@ func (s *ShortDataList) AddURL(originalURL string) string {
 	return shortData.ShortURL
 }
 
-func (s *ShortDataList) getOrCreateShortData(hash, url string) (*ShortData, bool) {
+func (s *ShortDataList) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
 	shortData, exist := s.mapData[hash]
 	if !exist {
-		shortData = ShortData{hash, RandText(8), url}
+		shortData = model.ShortData{hash, RandText(8), url}
 		s.mapData[hash] = shortData
 	}
 	return &shortData, !exist
 }
 
-func (s *ShortDataList) writeToFile(data *ShortData) {
+func (s *ShortDataList) writeToFile(data *model.ShortData) {
 	if err := s.encoder.Encode(&data); err != nil {
 		log.Printf("Write json file filename: %s , error: %s", s.file.Name(), err)
 	}

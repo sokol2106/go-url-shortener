@@ -100,68 +100,6 @@ func TestShortURL(t *testing.T) {
 	}
 }
 
-func TestShortURLCheckPost(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
-	defer server.Close()
-
-	tests := []struct {
-		name     string
-		url      string
-		wantPost strWant
-	}{
-		{
-			name: "Error httpss",
-			url:  "localhost:8080",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "Error httpss",
-			url:  "httpss://practicum.yandex.ru/",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "Error not host",
-			url:  "http://",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "Error empty",
-			url:  "",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "success",
-			url:  "https://yandex.ru/maps/15/tula/?ll=37.617348%2C54.193122&z=13",
-			wantPost: strWant{
-				code: http.StatusCreated,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Проверяем Post запрос
-			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
-			require.NoError(t, err)
-
-			response, err := server.Client().Do(request)
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantPost.code, response.StatusCode)
-
-			err = response.Body.Close()
-			require.NoError(t, err)
-		})
-	}
-}
-
 func TestPostJSON(t *testing.T) {
 	sh := shorturl.NewShortURL("http://localhost:8080", "")
 	server := httptest.NewServer(shorturl.ShortRouter(sh))

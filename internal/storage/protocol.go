@@ -2,17 +2,12 @@ package storage
 
 import (
 	"encoding/json"
+	"github.com/sokol2106/go-url-shortener/internal/model"
 	"os"
 )
 
-type ShortData struct {
-	UUID        string `json:"uuid"`
-	ShortURL    string `json:"shortURL"`
-	OriginalURL string `json:"originalURL"`
-}
-
 type ShortDataList struct {
-	mapData       map[string]ShortData
+	mapData       map[string]model.ShortData
 	file          *os.File
 	encoder       *json.Encoder
 	isWriteEnable bool

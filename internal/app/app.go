@@ -8,6 +8,8 @@ import (
 )
 
 func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath string) {
+	//var rr storage.ShortDataList
+	//rr.Init(fileStoragePath)
 	sh := shorturl.NewShortURL(shCnf.URL(), fileStoragePath)
 	ser := server.NewServer(shorturl.ShortRouter(sh), bsCnf.Addr())
 	err := ser.Start()

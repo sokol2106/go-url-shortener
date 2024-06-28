@@ -1,8 +1,14 @@
 package shorturl
 
-import (
-	"github.com/sokol2106/go-url-shortener/internal/storage"
-)
+import "github.com/sokol2106/go-url-shortener/internal/storage"
+
+/*
+type storageURL interface {
+	AddURL(url string) string
+	GetURL() string
+	Close() error
+}
+*/
 
 type ShortURL struct {
 	redirectURL   string
