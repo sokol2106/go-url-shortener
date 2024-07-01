@@ -38,7 +38,10 @@ func (s *ShortDataList) Init(filename string) {
 }
 
 func (s *ShortDataList) Close() error {
-	return s.file.Close()
+	if s.isWriteEnable {
+		return s.file.Close()
+	}
+	return nil
 }
 
 func (s *ShortDataList) loadDataFile() {

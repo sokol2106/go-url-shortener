@@ -306,3 +306,33 @@ func TestFileReadWrite(t *testing.T) {
 		})
 	}
 }
+
+func TestShortURLTestify(t *testing.T) {
+	var strg storage.ShortDataList
+	strg.Init("")
+	shrt := shorturl.New("http://localhost:8080", strg)
+
+	//  Post
+	request := httptest.NewRequest("POST", "/", strings.NewReader("https://practicum.yandex.ru/"))
+	response := httptest.NewRecorder()
+	shrt.Post(response, request)
+	assert.Equal(t, http.StatusCreated, response.Code)
+
+	// PostJSON
+	request = httptest.NewRequest("POST", "/", strings.NewReader("{\"url\": \"https://dzen.ru\"}"))
+	request.Header.Set("Content-Type", "application/json")
+	shrt.PostJSON(response, request)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	assert.Equal(t, "application/json", response.Header().Get("Content-Type"))
+
+	err := shrt.Close()
+	require.NoError(t, err)
+
+	// id и как тут не получить
+	// resBody, err := io.ReadAll(response.Body)
+	// require.NoError(t, err)
+	// request = httptest.NewRequest("GET", "/", strings.NewReader(string(resBody)))
+	// shrt.Get(response, request)
+	// assert.Equal(t, http.StatusOK, response.Code)
+
+}
