@@ -3,27 +3,45 @@ package main
 import (
 	"github.com/sokol2106/go-url-shortener/internal/app"
 	"github.com/sokol2106/go-url-shortener/internal/config"
+	"log"
 	"os"
 )
 
+const CServerAddress = "localhost:8080"
+const CBaseAddress = "localhost:8080"
+const СFileStoragePath = "/tmp/short-url-db.json"
+
 type params struct {
-	ServerAddress string
-	BaseURL       string
+	ServerAddress   string
+	BaseAddress     string
+	FileStoragePath string
 }
 
 func main() {
-	var (
-		flg  bool
-		flg2 bool
-	)
-
-	p := params{"localhost:8080", "localhost:8080"}
-	p.ServerAddress, flg = os.LookupEnv("SERVER_ADDRESS")
-	p.BaseURL, flg2 = os.LookupEnv("BASE_URL")
-
-	if !flg || !flg2 {
-		ParseFlags(&p.ServerAddress, &p.BaseURL)
+	p := params{
+		ServerAddress:   os.Getenv("SERVER_ADDRESS"),
+		BaseAddress:     os.Getenv("BASE_URL"),
+		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
 	}
-
-	app.Run(config.NewConfigURL(p.ServerAddress), config.NewConfigURL(p.BaseURL))
+	if p.ServerAddress == "" {
+		p.ServerAddress = CServerAddress
+	}
+	if p.BaseAddress == "" {
+		p.BaseAddress = CBaseAddress
+	}
+	if p.FileStoragePath == "" {
+		p.FileStoragePath = СFileStoragePath
+	}
+	ParseFlags(&p)
+	configServer, err := config.NewConfigURL(p.ServerAddress)
+	if err != nil {
+		log.Printf("Creating server config error: %s", err.Error())
+		return
+	}
+	configBase, err := config.NewConfigURL(p.BaseAddress)
+	if err != nil {
+		log.Printf("Creating server config base address error: %s", err.Error())
+		return
+	}
+	app.Run(configServer, configBase, p.FileStoragePath)
 }

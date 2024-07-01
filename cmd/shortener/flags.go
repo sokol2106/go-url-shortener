@@ -2,9 +2,9 @@ package main
 
 import "flag"
 
-func ParseFlags(baseHost *string, shortHost *string) {
-	flag.StringVar(baseHost, "a", "localhost:8080", "address and port to run server")
-	flag.StringVar(shortHost, "b", "localhost:8080", "base address and port of the resulting shortened URL")
-
+func ParseFlags(p *params) {
+	flag.StringVar(&p.ServerAddress, "a", p.ServerAddress, "address to run server")
+	flag.StringVar(&p.BaseAddress, "b", p.BaseAddress, "base address of the resulting shortened URL")
+	flag.StringVar(&p.FileStoragePath, "f", p.FileStoragePath, "file storage path")
 	flag.Parse()
 }

@@ -1,94 +1,137 @@
 package shorturl
 
 import (
-	"crypto/md5"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/sokol2106/go-url-shortener/internal/server"
-	storage "github.com/sokol2106/go-url-shortener/internal/storage"
+	"github.com/sokol2106/go-url-shortener/internal/gzip"
+	"github.com/sokol2106/go-url-shortener/internal/logger"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
-	"math/rand"
+	"log"
 	"net/http"
 )
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-type ShortURL struct {
-	url            string
-	tableshortdata map[string]*storage.Shortdata
+func New(redirectURL string, strg storage.ShortDataList) *ShortURL {
+	s := new(ShortURL)
+	s.redirectURL = redirectURL
+	s.storageURL = strg
+	return s
 }
 
-func NewShortURL(u string) *ShortURL {
-	return &ShortURL{
-		url:            u,
-		tableshortdata: make(map[string]*storage.Shortdata),
-	}
+func (s *ShortURL) createRedirectURL(url string) string {
+	// НУЖНА ЛИ ПРОВЕРКА ВХОДНОГО URL !!!
+	/*
+		err := config.CheckURL(url)
+		if err != nil {
+			log.Printf("error CheckURL error: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return ""
+		}
+	*/
+	res := s.storageURL.AddURL(url)
+	return fmt.Sprintf("%s/%s", s.redirectURL, res)
 }
 
-func randText(size int) string {
-	b := make([]rune, size)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
+func (s *ShortURL) handlerError(content string, err error) {
+	log.Printf("Error %s: %s", content, err)
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
 
-		err = server.CheckURL(string(body))
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 
-		hash := md5.Sum(body)
-		thash := hex.EncodeToString(hash[:])
+	if err != nil {
+		s.handlerError("read request", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-		tshdata, exist := s.tableshortdata[thash]
-		if !exist {
-			tshdata = storage.NewShortdata(string(body), randText(8))
-			s.tableshortdata[thash] = tshdata
-		}
+	shortURL := s.createRedirectURL(string(body))
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write([]byte(shortURL))
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusCreated)
-		_, _ = fmt.Fprintf(w, "%s/%s", s.url, tshdata.Short())
+	if err != nil {
+		s.handlerError("write response", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
+}
+
+func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
+	path := chi.URLParam(r, "id")
+	URL := s.storageURL.GetURL(path)
+	if URL != "" {
+		w.Header().Set("Location", URL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		path := chi.URLParam(r, "id")
-
-		for _, value := range s.tableshortdata {
-			if path == value.Short() {
-				w.Header().Set("Location", value.URL())
-				w.WriteHeader(http.StatusTemporaryRedirect)
-				return
-			}
-		}
-	}
-
+func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func ShortRouter(url string) chi.Router {
+func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	if err != nil {
+		s.handlerError("read request", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var (
+		reqJS RequestJSON
+		resJS ResponseJSON
+	)
+
+	err = json.Unmarshal(body, &reqJS)
+	if err != nil {
+		s.handlerError("unmarshal body", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resJS.Result = s.createRedirectURL(reqJS.URL)
+	resBody, err := json.Marshal(resJS)
+	if err != nil {
+		s.handlerError("marshal body", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resBody)
+}
+
+func (s *ShortURL) Close() error {
+	return s.storageURL.Close()
+}
+
+func Router(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
-	sh := NewShortURL(url)
-	router.Post("/", sh.Post)
-	router.Get("/*", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusBadRequest) })
-	router.Get("/{id}", sh.Get)
+
+	// middleware
+	router.Use(gzip.СompressionResponseRequest)
+	router.Use(logger.LoggingResponseRequest)
+
+	// router
+	router.Post("/", http.HandlerFunc(sh.Post))
+	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
+	router.Get("/*", http.HandlerFunc(sh.GetAll))
+	router.Get("/{id}", http.HandlerFunc(sh.Get))
 
 	return router
 }
