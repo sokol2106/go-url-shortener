@@ -6,16 +6,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
 	"log"
 	"net/http"
 )
 
-func NewShortURL(redirectURL string, fileStoragePath string) *ShortURL {
+func New(redirectURL string, strg storage.ShortDataList) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
-	//s.shortDataList = su
-	s.shortDataList.Init(fileStoragePath)
+	s.storageURL = strg
 	return s
 }
 
@@ -29,8 +29,7 @@ func (s *ShortURL) createRedirectURL(url string) string {
 			return ""
 		}
 	*/
-
-	res := s.shortDataList.AddURL(url)
+	res := s.storageURL.AddURL(url)
 	return fmt.Sprintf("%s/%s", s.redirectURL, res)
 }
 
@@ -39,6 +38,7 @@ func (s *ShortURL) handlerError(content string, err error) {
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
+
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
@@ -63,7 +63,7 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
-	URL := s.shortDataList.GetURL(path)
+	URL := s.storageURL.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -86,7 +86,7 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		log.Printf("ReadAll body error: %s", err)
+		s.handlerError("read request", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -98,18 +98,17 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &reqJS)
 	if err != nil {
-		log.Printf("Unmarshal body error: %s", err)
+		s.handlerError("unmarshal body", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	res := s.shortDataList.AddURL(reqJS.URL)
-	resJS.Result = fmt.Sprintf("%s/%s", s.redirectURL, res)
-
+	resJS.Result = s.createRedirectURL(reqJS.URL)
 	resBody, err := json.Marshal(resJS)
 	if err != nil {
-		log.Printf("Marshal body error: %s", err)
+		s.handlerError("marshal body", err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -118,10 +117,10 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Close() error {
-	return s.shortDataList.Close()
+	return s.storageURL.Close()
 }
 
-func ShortRouter(sh *ShortURL) chi.Router {
+func Router(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
 
 	// middleware

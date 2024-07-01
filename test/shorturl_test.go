@@ -25,8 +25,10 @@ type strWant struct {
 }
 
 func TestShortURL(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init("")
+	sh := shorturl.New("http://localhost:8080", strg)
+	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
 	tests := []struct {
@@ -101,8 +103,10 @@ func TestShortURL(t *testing.T) {
 }
 
 func TestPostJSON(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init("")
+	sh := shorturl.New("http://localhost:8080", strg)
+	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
 	tests := []struct {
@@ -167,8 +171,10 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init("")
+	sh := shorturl.New("http://localhost:8080", strg)
+	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
 	tests := struct {
@@ -240,8 +246,10 @@ func TestGzipCompression(t *testing.T) {
 
 func TestFileReadWrite(t *testing.T) {
 	fileName := "hort-url-db.json"
-	sh := shorturl.NewShortURL("http://localhost:8080", fileName)
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init(fileName)
+	sh := shorturl.New("http://localhost:8080", strg)
+	server := httptest.NewServer(shorturl.Router(sh))
 
 	tests := []struct {
 		name     string

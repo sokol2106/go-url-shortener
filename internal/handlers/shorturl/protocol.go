@@ -2,6 +2,7 @@ package shorturl
 
 import "github.com/sokol2106/go-url-shortener/internal/storage"
 
+// Для дальнейшей модификации
 /*
 type storageURL interface {
 	AddURL(url string) string
@@ -11,8 +12,8 @@ type storageURL interface {
 */
 
 type ShortURL struct {
-	redirectURL   string
-	shortDataList storage.ShortDataList
+	redirectURL string
+	storageURL  storage.ShortDataList
 }
 
 type RequestJSON struct {

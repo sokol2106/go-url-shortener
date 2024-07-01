@@ -13,7 +13,12 @@ import (
 	"os"
 )
 
-// ShortDataList
+type ShortDataList struct {
+	mapData       map[string]model.ShortData
+	file          *os.File
+	encoder       *json.Encoder
+	isWriteEnable bool
+}
 
 func (s *ShortDataList) Init(filename string) {
 	s.mapData = make(map[string]model.ShortData)
