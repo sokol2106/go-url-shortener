@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"strings"
 	"time"
 )
@@ -21,6 +22,7 @@ type Postgresql struct {
 func New(cnf string) *Postgresql {
 	var pstg = Postgresql{}
 	pstg.host = "disable"
+	pstg.port = "5432" // standart port postgresql
 	params := strings.Fields(cnf)
 	for _, value := range params {
 		res := strings.Split(value, "=")
@@ -45,8 +47,8 @@ func New(cnf string) *Postgresql {
 
 func (pstg *Postgresql) Connect() error {
 	var err error
-	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=%s",
-		pstg.host, pstg.user, pstg.password, pstg.dbname, pstg.sslmode)
+	ps := fmt.Sprintf("host=%s posrt=%S user=%s password=%s dbname=%s sslmode=%s",
+		pstg.host, pstg.port, pstg.user, pstg.password, pstg.dbname, pstg.sslmode)
 	pstg.db, err = sql.Open("pgx", ps)
 	return err
 }
