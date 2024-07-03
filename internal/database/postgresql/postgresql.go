@@ -18,6 +18,7 @@ type Postgresql struct {
 
 func New(cnf string) *Postgresql {
 	var pstg = Postgresql{}
+	pstg.cnf = make(map[string]string)
 
 	if cnf == "" {
 		return &pstg
@@ -47,7 +48,10 @@ func (pstg *Postgresql) Connect() error {
 }
 
 func (pstg *Postgresql) Disconnect() error {
-	return pstg.db.Close()
+	if pstg.db != nil {
+		return pstg.db.Close()
+	}
+	return nil
 }
 
 func (pstg *Postgresql) PingContext() error {
