@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -19,6 +20,7 @@ type Postgresql struct {
 
 func New(cnf string) *Postgresql {
 	var pstg = Postgresql{}
+	pstg.host = "disable"
 	params := strings.Fields(cnf)
 	for _, value := range params {
 		res := strings.Split(value, "=")
@@ -43,7 +45,9 @@ func New(cnf string) *Postgresql {
 
 func (pstg *Postgresql) Connect() error {
 	var err error
-	pstg.db, err = sql.Open("pgx", "")
+	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
+		pstg.host, pstg.user, pstg.password, pstg.dbname, pstg.sslmode)
+	pstg.db, err = sql.Open("pgx", ps)
 	return err
 }
 
