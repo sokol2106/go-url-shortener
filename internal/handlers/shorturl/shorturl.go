@@ -75,7 +75,7 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	
+
 	*/
 
 	URL := s.storageURL.GetURL(path)
@@ -97,11 +97,9 @@ func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.handlerError("ping db", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
 func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
