@@ -79,7 +79,6 @@ func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) GetPingDB(w http.ResponseWriter, r *http.Request) {
-
 	err := s.database.PingContext()
 	if err != nil {
 		s.handlerError("ping db", err)
@@ -146,7 +145,7 @@ func Router(sh *ShortURL) chi.Router {
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
-	router.Get("/ping", http.HandlerFunc(sh.Get))
+	router.Get("/ping", http.HandlerFunc(sh.GetPingDB))
 
 	return router
 }
