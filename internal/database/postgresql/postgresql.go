@@ -4,8 +4,6 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"log"
-	"strings"
 	"time"
 )
 
@@ -20,7 +18,7 @@ func New(cnf string) *Postgresql {
 	pstg.cnf = make(map[string]string)
 	pstg.config = cnf
 
-	if cnf == "" {
+	/*if cnf == "" {
 		return &pstg
 	}
 
@@ -32,7 +30,7 @@ func New(cnf string) *Postgresql {
 			return &pstg
 		}
 		pstg.cnf[res[0]] = res[1]
-	}
+	}*/
 
 	return &pstg
 }
