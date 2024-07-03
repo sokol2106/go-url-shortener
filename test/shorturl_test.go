@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/database/postgresql"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,8 @@ type strWant struct {
 func TestShortURL(t *testing.T) {
 	var strg storage.ShortDataList
 	strg.Init("")
-	sh := shorturl.New("http://localhost:8080", strg)
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -105,7 +107,8 @@ func TestShortURL(t *testing.T) {
 func TestPostJSON(t *testing.T) {
 	var strg storage.ShortDataList
 	strg.Init("")
-	sh := shorturl.New("http://localhost:8080", strg)
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -173,7 +176,8 @@ func TestPostJSON(t *testing.T) {
 func TestGzipCompression(t *testing.T) {
 	var strg storage.ShortDataList
 	strg.Init("")
-	sh := shorturl.New("http://localhost:8080", strg)
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -248,7 +252,8 @@ func TestFileReadWrite(t *testing.T) {
 	fileName := "hort-url-db.json"
 	var strg storage.ShortDataList
 	strg.Init(fileName)
-	sh := shorturl.New("http://localhost:8080", strg)
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
 	server := httptest.NewServer(shorturl.Router(sh))
 
 	tests := []struct {
@@ -310,7 +315,8 @@ func TestFileReadWrite(t *testing.T) {
 func TestShortURLTestify(t *testing.T) {
 	var strg storage.ShortDataList
 	strg.Init("")
-	shrt := shorturl.New("http://localhost:8080", strg)
+	db := postgresql.New("")
+	shrt := shorturl.New("http://localhost:8080", strg, db)
 
 	//  Post
 	request := httptest.NewRequest("POST", "/", strings.NewReader("https://practicum.yandex.ru/"))

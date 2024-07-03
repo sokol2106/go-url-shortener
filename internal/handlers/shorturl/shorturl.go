@@ -12,16 +12,11 @@ import (
 	"net/http"
 )
 
-type StorageURL interface {
-	AddURL(url string) string
-	GetURL() string
-	Close() error
-}
-
-func New(redirectURL string, strg storage.ShortDataList) *ShortURL {
+func New(redirectURL string, strg storage.ShortDataList, db Database) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
 	s.storageURL = strg
+	s.database = db
 	return s
 }
 
@@ -83,6 +78,19 @@ func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
+func (s *ShortURL) GetPingDB(w http.ResponseWriter, r *http.Request) {
+
+	err := s.database.PingContext()
+	if err != nil {
+		s.handlerError("ping db", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+}
+
 func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -138,6 +146,7 @@ func Router(sh *ShortURL) chi.Router {
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
+	router.Get("/ping", http.HandlerFunc(sh.Get))
 
 	return router
 }
