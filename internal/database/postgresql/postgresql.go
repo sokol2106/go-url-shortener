@@ -1,9 +1,13 @@
 package postgresql
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -18,10 +22,6 @@ func New(cnf string) *Postgresql {
 	pstg.cnf = make(map[string]string)
 	pstg.config = cnf
 
-	/*if cnf == "" {
-		return &pstg
-	}
-
 	params := strings.Fields(cnf)
 	for _, value := range params {
 		res := strings.Split(value, "=")
@@ -30,18 +30,18 @@ func New(cnf string) *Postgresql {
 			return &pstg
 		}
 		pstg.cnf[res[0]] = res[1]
-	}*/
+	}
 
 	return &pstg
 }
 
 func (pstg *Postgresql) Connect() error {
 	var err error
-	//params := new(bytes.Buffer)
-	//for key, value := range pstg.cnf {
-	//	fmt.Fprintf(params, "%s=%s ", key, value)
-	//}
-	pstg.db, err = sql.Open("pgx", pstg.config)
+	params := new(bytes.Buffer)
+	for key, value := range pstg.cnf {
+		fmt.Fprintf(params, "%s=%s ", key, value)
+	}
+	pstg.db, err = sql.Open("pgx", params.String())
 	//pstg.db, err = pgx.Connect(context.Background(), pstg.config)
 	return err
 }
