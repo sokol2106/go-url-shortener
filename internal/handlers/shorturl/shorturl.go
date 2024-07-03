@@ -130,7 +130,15 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Close() error {
-	return s.storageURL.Close()
+	err := s.storageURL.Close()
+	if err != nil {
+		s.handlerError("close storageURL", err)
+	}
+	err = s.database.Disconnect()
+	if err != nil {
+		s.handlerError("Disconnect db", err)
+	}
+	return err
 }
 
 func Router(sh *ShortURL) chi.Router {

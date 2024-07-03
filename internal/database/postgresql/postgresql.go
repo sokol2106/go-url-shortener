@@ -1,45 +1,36 @@
 package postgresql
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
 	"strings"
 	"time"
 )
 
 type Postgresql struct {
-	host     string
-	port     string
-	user     string
-	password string
-	dbname   string
-	sslmode  string
-	db       *sql.DB
+	cnf map[string]string
+	db  *sql.DB
 }
 
 func New(cnf string) *Postgresql {
 	var pstg = Postgresql{}
-	pstg.host = "disable"
-	pstg.port = "5432" // standart port postgresql
+
+	if cnf == "" {
+		return &pstg
+	}
+
 	params := strings.Fields(cnf)
 	for _, value := range params {
 		res := strings.Split(value, "=")
-		switch res[0] {
-		case "host":
-			pstg.host = res[1]
-		case "port":
-			pstg.port = res[1]
-		case "user":
-			pstg.user = res[1]
-		case "password":
-			pstg.password = res[1]
-		case "dbname":
-			pstg.dbname = res[1]
-		case "sslmode":
-			pstg.sslmode = res[1]
+		if len(res) != 2 {
+			log.Printf("Erron new postgresql connection parameter: %s", cnf)
+			return &pstg
 		}
+		pstg.cnf[res[0]] = res[1]
 	}
 
 	return &pstg
@@ -47,9 +38,11 @@ func New(cnf string) *Postgresql {
 
 func (pstg *Postgresql) Connect() error {
 	var err error
-	ps := fmt.Sprintf("host=%s posrt=%s user=%s password=%s dbname=%s sslmode=%s",
-		pstg.host, pstg.port, pstg.user, pstg.password, pstg.dbname, pstg.sslmode)
-	pstg.db, err = sql.Open("pgx", ps)
+	params := new(bytes.Buffer)
+	for key, value := range pstg.cnf {
+		fmt.Fprintf(params, "%s=%s ", key, value)
+	}
+	pstg.db, err = sql.Open("pgx", params.String())
 	return err
 }
 
