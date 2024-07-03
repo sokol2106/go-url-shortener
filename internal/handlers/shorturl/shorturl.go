@@ -12,6 +12,12 @@ import (
 	"net/http"
 )
 
+type StorageURL interface {
+	AddURL(url string) string
+	GetURL() string
+	Close() error
+}
+
 func New(redirectURL string, strg storage.ShortDataList) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
