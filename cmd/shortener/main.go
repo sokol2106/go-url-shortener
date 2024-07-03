@@ -15,7 +15,7 @@ type params struct {
 	ServerAddress   string
 	BaseAddress     string
 	FileStoragePath string
-	Database_DSN    string
+	DatabaseDSN     string
 }
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 		ServerAddress:   os.Getenv("SERVER_ADDRESS"),
 		BaseAddress:     os.Getenv("BASE_URL"),
 		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
-		Database_DSN:    os.Getenv("FILE_STORAGE_PATH"),
+		DatabaseDSN:     os.Getenv("FILE_STORAGE_PATH"),
 	}
 	if p.ServerAddress == "" {
 		p.ServerAddress = CServerAddress
@@ -45,5 +45,5 @@ func main() {
 		log.Printf("Creating server config base address error: %s", err.Error())
 		return
 	}
-	app.Run(configServer, configBase, p.FileStoragePath, p.Database_DSN)
+	app.Run(configServer, configBase, p.FileStoragePath, p.DatabaseDSN)
 }

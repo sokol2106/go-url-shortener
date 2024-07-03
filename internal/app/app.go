@@ -9,11 +9,11 @@ import (
 	"log"
 )
 
-func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath string, database_DSN string) {
+func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath string, databaseDSN string) {
 	var (
 		strg storage.ShortDataList
 	)
-	db := postgresql.New(database_DSN)
+	db := postgresql.New(databaseDSN)
 	err := db.Connect()
 	if err != nil {
 		log.Printf("Error connect db: %s", err)
