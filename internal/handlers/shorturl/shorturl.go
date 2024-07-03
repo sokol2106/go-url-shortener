@@ -64,7 +64,7 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
-	if path == "ping" {
+	/*if path == "ping" {
 		err := s.database.PingContext()
 		if err != nil {
 			s.handlerError("ping db", err)
@@ -75,6 +75,8 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+	
+	*/
 
 	URL := s.storageURL.GetURL(path)
 	if URL != "" {
@@ -88,6 +90,18 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 
 func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
+}
+
+func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
+	err := s.database.PingContext()
+	if err != nil {
+		s.handlerError("ping db", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	return
 }
 
 func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
@@ -153,6 +167,7 @@ func Router(sh *ShortURL) chi.Router {
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
+	router.Get("/ping", http.HandlerFunc(sh.GetPing))
 
 	return router
 }
