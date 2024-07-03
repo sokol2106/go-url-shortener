@@ -23,7 +23,7 @@ func main() {
 		ServerAddress:   os.Getenv("SERVER_ADDRESS"),
 		BaseAddress:     os.Getenv("BASE_URL"),
 		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
-		DatabaseDSN:     os.Getenv("FILE_STORAGE_PATH"),
+		DatabaseDSN:     os.Getenv("DATABASE_DSN"),
 	}
 	if p.ServerAddress == "" {
 		p.ServerAddress = CServerAddress
