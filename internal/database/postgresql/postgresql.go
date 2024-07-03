@@ -45,7 +45,7 @@ func New(cnf string) *Postgresql {
 
 func (pstg *Postgresql) Connect() error {
 	var err error
-	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",
+	ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=%s",
 		pstg.host, pstg.user, pstg.password, pstg.dbname, pstg.sslmode)
 	pstg.db, err = sql.Open("pgx", ps)
 	return err
