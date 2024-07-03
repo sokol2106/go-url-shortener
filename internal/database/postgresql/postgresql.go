@@ -12,13 +12,15 @@ import (
 )
 
 type Postgresql struct {
-	cnf map[string]string
-	db  *sql.DB
+	cnf    map[string]string
+	db     *sql.DB
+	config string
 }
 
 func New(cnf string) *Postgresql {
 	var pstg = Postgresql{}
 	pstg.cnf = make(map[string]string)
+	pstg.config = cnf
 
 	if cnf == "" {
 		return &pstg
@@ -43,7 +45,7 @@ func (pstg *Postgresql) Connect() error {
 	for key, value := range pstg.cnf {
 		fmt.Fprintf(params, "%s=%s ", key, value)
 	}
-	pstg.db, err = sql.Open("pgx", params.String())
+	pstg.db, err = sql.Open("pgx", pstg.config)
 	return err
 }
 
