@@ -2,14 +2,14 @@ package postgresql
 
 import (
 	"context"
-	"database/sql"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"time"
 )
 
 type Postgresql struct {
 	cnf    map[string]string
-	db     *sql.DB
+	db     *pgx.Conn
 	config string
 }
 
@@ -37,14 +37,14 @@ func (pstg *Postgresql) Connect() error {
 	//	for key, value := range pstg.cnf {
 	//		fmt.Fprintf(params, "%s=%s ", key, value)
 	//	}
-	pstg.db, err = sql.Open("pgx", pstg.config)
-	//pstg.db, err = pgx.Connect(context.Background(), pstg.config)
+	//pstg.db, err = sql.Open("pgx", pstg.config)
+	pstg.db, err = pgx.Connect(context.Background(), pstg.config)
 	return err
 }
 
 func (pstg *Postgresql) Disconnect() error {
 	if pstg.db != nil {
-		return pstg.db.Close()
+		return pstg.db.Close(context.Background())
 	}
 	return nil
 }
@@ -52,5 +52,5 @@ func (pstg *Postgresql) Disconnect() error {
 func (pstg *Postgresql) PingContext() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	return pstg.db.PingContext(ctx)
+	return pstg.db.Ping(ctx)
 }
