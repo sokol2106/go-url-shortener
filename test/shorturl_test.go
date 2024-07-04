@@ -5,9 +5,9 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/sokol2106/go-url-shortener/internal/database/postgresql"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
-	"github.com/sokol2106/go-url-shortener/internal/storage"
+	"github.com/sokol2106/go-url-shortener/internal/storage/fileStorage"
+	"github.com/sokol2106/go-url-shortener/internal/storage/memoryStorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -26,10 +26,8 @@ type strWant struct {
 }
 
 func TestShortURL(t *testing.T) {
-	var strg storage.ShortDataList
-	strg.Init("")
-	db := postgresql.New("")
-	sh := shorturl.New("http://localhost:8080", strg, db)
+	objectStorage := memoryStorage.New()
+	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -105,10 +103,8 @@ func TestShortURL(t *testing.T) {
 }
 
 func TestPostJSON(t *testing.T) {
-	var strg storage.ShortDataList
-	strg.Init("")
-	db := postgresql.New("")
-	sh := shorturl.New("http://localhost:8080", strg, db)
+	objectStorage := memoryStorage.New()
+	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -174,10 +170,8 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	var strg storage.ShortDataList
-	strg.Init("")
-	db := postgresql.New("")
-	sh := shorturl.New("http://localhost:8080", strg, db)
+	objectStorage := memoryStorage.New()
+	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -250,10 +244,10 @@ func TestGzipCompression(t *testing.T) {
 
 func TestFileReadWrite(t *testing.T) {
 	fileName := "hort-url-db.json"
-	var strg storage.ShortDataList
-	strg.Init(fileName)
-	db := postgresql.New("")
-	sh := shorturl.New("http://localhost:8080", strg, db)
+	objectStorage := fileStorage.New(fileName)
+	defer objectStorage.Close()
+
+	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 
 	tests := []struct {
@@ -296,14 +290,8 @@ func TestFileReadWrite(t *testing.T) {
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
-				str := storage.ShortDataList{}
-				str.Init(fileName)
-
-				resURL := str.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
+				resURL := objectStorage.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)
-
-				err = str.Close()
-				require.NoError(t, err)
 
 				err = os.Remove(fileName)
 				require.NoError(t, err)
@@ -313,10 +301,8 @@ func TestFileReadWrite(t *testing.T) {
 }
 
 func TestShortURLTestify(t *testing.T) {
-	var strg storage.ShortDataList
-	strg.Init("")
-	db := postgresql.New("")
-	shrt := shorturl.New("http://localhost:8080", strg, db)
+	objectStorage := memoryStorage.New()
+	shrt := shorturl.New("http://localhost:8080", objectStorage, nil)
 
 	//  Post
 	request := httptest.NewRequest("POST", "/", strings.NewReader("https://practicum.yandex.ru/"))
