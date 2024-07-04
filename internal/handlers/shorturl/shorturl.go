@@ -4,54 +4,81 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
+	"log"
 	"net/http"
 )
 
-func NewShortURL(redirectURL string, fileStoragePath string) *ShortURL {
+func New(redirectURL string, strg storage.ShortDataList, db Database) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
-	s.shortDataList.Init(fileStoragePath)
+	s.storageURL = strg
+	s.database = db
 	return s
 }
 
+func (s *ShortURL) createRedirectURL(url string) string {
+	// НУЖНА ЛИ ПРОВЕРКА ВХОДНОГО URL !!!
+	/*
+		err := config.CheckURL(url)
+		if err != nil {
+			log.Printf("error CheckURL error: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return ""
+		}
+	*/
+	res := s.storageURL.AddURL(url)
+	return fmt.Sprintf("%s/%s", s.redirectURL, res)
+}
+
+func (s *ShortURL) handlerError(content string, err error) {
+	log.Printf("Error %s: %s", content, err)
+}
+
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
+		s.handlerError("read request", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = config.CheckURL(string(body))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
+	shortURL := s.createRedirectURL(string(body))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	res := s.shortDataList.AddURL(string(body))
-	w.Write([]byte(fmt.Sprintf("%s/%s", s.redirectURL, res)))
+	_, err = w.Write([]byte(shortURL))
+
+	if err != nil {
+		s.handlerError("write response", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
+	path := chi.URLParam(r, "id")
+	/*if path == "ping" {
+		err := s.database.PingContext()
+		if err != nil {
+			s.handlerError("ping db", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	path := chi.URLParam(r, "id")
-	URL := s.shortDataList.GetURL(path)
+	*/
+
+	URL := s.storageURL.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -65,8 +92,18 @@ func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
+func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
+	err := s.database.PingContext()
+	if err != nil {
+		s.handlerError("ping db", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
+	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -74,6 +111,7 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
+		s.handlerError("read request", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -85,16 +123,17 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &reqJS)
 	if err != nil {
+		s.handlerError("unmarshal body", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	res := s.shortDataList.AddURL(reqJS.URL)
-	resJS.Result = fmt.Sprintf("%s/%s", s.redirectURL, res)
-
+	resJS.Result = s.createRedirectURL(reqJS.URL)
 	resBody, err := json.Marshal(resJS)
 	if err != nil {
+		s.handlerError("marshal body", err)
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -103,10 +142,18 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Close() error {
-	return s.shortDataList.Close()
+	err := s.storageURL.Close()
+	if err != nil {
+		s.handlerError("close storageURL", err)
+	}
+	err = s.database.Disconnect()
+	if err != nil {
+		s.handlerError("Disconnect db", err)
+	}
+	return err
 }
 
-func ShortRouter(sh *ShortURL) chi.Router {
+func Router(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
@@ -118,6 +165,7 @@ func ShortRouter(sh *ShortURL) chi.Router {
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
+	router.Get("/ping", http.HandlerFunc(sh.GetPing))
 
 	return router
 }

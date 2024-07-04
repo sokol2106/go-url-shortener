@@ -1,12 +1,24 @@
 package shorturl
 
-import (
-	"github.com/sokol2106/go-url-shortener/internal/storage"
-)
+import "github.com/sokol2106/go-url-shortener/internal/storage"
+
+// Для дальнейшей модификации
+type StorageURL interface {
+	AddURL(url string) string
+	GetURL() string
+	Close() error
+}
+
+type Database interface {
+	Connect() error
+	Disconnect() error
+	PingContext() error
+}
 
 type ShortURL struct {
-	redirectURL   string
-	shortDataList storage.ShortDatalList
+	redirectURL string
+	storageURL  storage.ShortDataList
+	database    Database
 }
 
 type RequestJSON struct {

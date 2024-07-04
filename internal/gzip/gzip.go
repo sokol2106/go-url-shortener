@@ -3,6 +3,7 @@ package gzip
 import (
 	"compress/gzip"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -82,6 +83,7 @@ func СompressionResponseRequest(handler http.Handler) http.Handler {
 		if sendsGzip {
 			cr, err := newCompressReader(r.Body)
 			if err != nil {
+				log.Printf("CompressReader error: %s", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

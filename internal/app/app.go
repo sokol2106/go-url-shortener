@@ -1,17 +1,29 @@
 package app
 
 import (
-	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/config"
+	"github.com/sokol2106/go-url-shortener/internal/database/postgresql"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/server"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
+	"log"
 )
 
-func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath string) {
-	sh := shorturl.NewShortURL(shCnf.URL(), fileStoragePath)
-	ser := server.NewServer(shorturl.ShortRouter(sh), bsCnf.Addr())
-	err := ser.Start()
+func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath string, databaseDSN string) {
+	var (
+		strg storage.ShortDataList
+	)
+	db := postgresql.New(databaseDSN)
+	err := db.Connect()
 	if err != nil {
-		fmt.Printf("error starting server: %s", err)
+		log.Printf("Error connect db: %s", err)
+	}
+
+	strg.Init(fileStoragePath)
+	sh := shorturl.New(shCnf.URL(), strg, db)
+	ser := server.NewServer(shorturl.Router(sh), bsCnf.Addr())
+	err = ser.Start()
+	if err != nil {
+		log.Printf("Starting server error: %s", err)
 	}
 }

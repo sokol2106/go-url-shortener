@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/database/postgresql"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -25,8 +26,11 @@ type strWant struct {
 }
 
 func TestShortURL(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init("")
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
+	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
 	tests := []struct {
@@ -100,71 +104,12 @@ func TestShortURL(t *testing.T) {
 	}
 }
 
-func TestShortURLCheckPost(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
-	defer server.Close()
-
-	tests := []struct {
-		name     string
-		url      string
-		wantPost strWant
-	}{
-		{
-			name: "Error httpss",
-			url:  "localhost:8080",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "Error httpss",
-			url:  "httpss://practicum.yandex.ru/",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "Error not host",
-			url:  "http://",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "Error empty",
-			url:  "",
-			wantPost: strWant{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name: "success",
-			url:  "https://yandex.ru/maps/15/tula/?ll=37.617348%2C54.193122&z=13",
-			wantPost: strWant{
-				code: http.StatusCreated,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Проверяем Post запрос
-			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
-			require.NoError(t, err)
-
-			response, err := server.Client().Do(request)
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantPost.code, response.StatusCode)
-
-			err = response.Body.Close()
-			require.NoError(t, err)
-		})
-	}
-}
-
 func TestPostJSON(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init("")
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
+	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
 	tests := []struct {
@@ -229,8 +174,11 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	sh := shorturl.NewShortURL("http://localhost:8080", "")
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init("")
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
+	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
 	tests := struct {
@@ -302,8 +250,11 @@ func TestGzipCompression(t *testing.T) {
 
 func TestFileReadWrite(t *testing.T) {
 	fileName := "hort-url-db.json"
-	sh := shorturl.NewShortURL("http://localhost:8080", fileName)
-	server := httptest.NewServer(shorturl.ShortRouter(sh))
+	var strg storage.ShortDataList
+	strg.Init(fileName)
+	db := postgresql.New("")
+	sh := shorturl.New("http://localhost:8080", strg, db)
+	server := httptest.NewServer(shorturl.Router(sh))
 
 	tests := []struct {
 		name     string
@@ -345,9 +296,8 @@ func TestFileReadWrite(t *testing.T) {
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
-				str := storage.ShortDatalList{}
+				str := storage.ShortDataList{}
 				str.Init(fileName)
-				str.LoadDateFile()
 
 				resURL := str.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)
@@ -360,4 +310,35 @@ func TestFileReadWrite(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestShortURLTestify(t *testing.T) {
+	var strg storage.ShortDataList
+	strg.Init("")
+	db := postgresql.New("")
+	shrt := shorturl.New("http://localhost:8080", strg, db)
+
+	//  Post
+	request := httptest.NewRequest("POST", "/", strings.NewReader("https://practicum.yandex.ru/"))
+	response := httptest.NewRecorder()
+	shrt.Post(response, request)
+	assert.Equal(t, http.StatusCreated, response.Code)
+
+	// PostJSON
+	request = httptest.NewRequest("POST", "/", strings.NewReader("{\"url\": \"https://dzen.ru\"}"))
+	request.Header.Set("Content-Type", "application/json")
+	shrt.PostJSON(response, request)
+	assert.Equal(t, http.StatusCreated, response.Code)
+	assert.Equal(t, "application/json", response.Header().Get("Content-Type"))
+
+	err := shrt.Close()
+	require.NoError(t, err)
+
+	// id и как тут не получить
+	// resBody, err := io.ReadAll(response.Body)
+	// require.NoError(t, err)
+	// request = httptest.NewRequest("GET", "/", strings.NewReader(string(resBody)))
+	// shrt.Get(response, request)
+	// assert.Equal(t, http.StatusOK, response.Code)
+
 }

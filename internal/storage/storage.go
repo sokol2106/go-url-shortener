@@ -2,20 +2,27 @@ package storage
 
 import (
 	"bufio"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"github.com/sokol2106/go-url-shortener/internal/model"
+	"log"
+	"math/big"
 	"os"
-	"time"
 )
 
-// ShortDatalList
+type ShortDataList struct {
+	mapData       map[string]model.ShortData
+	file          *os.File
+	encoder       *json.Encoder
+	isWriteEnable bool
+}
 
-func (s *ShortDatalList) Init(filename string) {
-	s.mapData = make(map[string]*ShortData)
-	s.flagWriteFile = false
+func (s *ShortDataList) Init(filename string) {
+	s.mapData = make(map[string]model.ShortData)
+	s.isWriteEnable = false
 	if filename != "" {
 		newFile, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
@@ -23,55 +30,40 @@ func (s *ShortDatalList) Init(filename string) {
 			return
 		}
 
-		s.flagWriteFile = true
+		s.isWriteEnable = true
 		s.encoder = json.NewEncoder(newFile)
 		s.file = newFile
-		s.LoadDateFile()
+		s.loadDataFile()
 	}
 }
 
-func (s *ShortDatalList) Close() error {
-	return s.file.Close()
+func (s *ShortDataList) Close() error {
+	if s.isWriteEnable {
+		return s.file.Close()
+	}
+	return nil
 }
 
-func (s *ShortDatalList) LoadDateFile() {
-	if !s.flagWriteFile {
-		return
-	}
-
-	sd := &ShortData{}
+func (s *ShortDataList) loadDataFile() {
 	scanner := bufio.NewScanner(s.file)
 	for scanner.Scan() {
 		data := scanner.Bytes()
+		sd := model.ShortData{}
 		err := json.Unmarshal(data, &sd)
 		if err != nil {
 			fmt.Printf("error Unmarshal file error: %s", err)
 			return
 		}
 		s.mapData[sd.UUID] = sd
-		sd = &ShortData{}
+		sd = model.ShortData{}
 	}
 }
 
-func (s *ShortDatalList) AddURL(originalURL string) string {
-	hash := sha256.Sum256([]byte(originalURL))
-	thash := hex.EncodeToString(hash[:])
-	tshdata, exist := s.mapData[thash]
-	if !exist {
-		tshdata = &ShortData{thash, RandText(8), originalURL}
-		s.mapData[thash] = tshdata
-
-		if s.flagWriteFile {
-			if err := s.encoder.Encode(&tshdata); err != nil {
-				fmt.Printf("error write json file filename: %s , error: %s", s.file.Name(), err)
-			}
-		}
-	}
-
-	return tshdata.ShortURL
+func (s *ShortDataList) GetListShortData() map[string]model.ShortData {
+	return s.mapData
 }
 
-func (s *ShortDatalList) GetURL(shURL string) string {
+func (s *ShortDataList) GetURL(shURL string) string {
 	for _, value := range s.mapData {
 		if shURL == value.ShortURL {
 			return value.OriginalURL
@@ -80,16 +72,46 @@ func (s *ShortDatalList) GetURL(shURL string) string {
 	return ""
 }
 
-func (s *ShortDatalList) GetListShortData() map[string]*ShortData {
-	return s.mapData
+func (s *ShortDataList) AddURL(originalURL string) string {
+	hash := GenerateHash(originalURL)
+	shortData, isNewShortData := s.getOrCreateShortData(hash, originalURL)
+	if isNewShortData && s.isWriteEnable {
+		s.writeToFile(shortData)
+	}
+
+	return shortData.ShortURL
+}
+
+func (s *ShortDataList) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
+	shortData, exist := s.mapData[hash]
+	if !exist {
+		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
+		s.mapData[hash] = shortData
+	}
+	return &shortData, !exist
+}
+
+func (s *ShortDataList) writeToFile(data *model.ShortData) {
+	if err := s.encoder.Encode(&data); err != nil {
+		log.Printf("Write json file filename: %s , error: %s", s.file.Name(), err)
+	}
+}
+
+func GenerateHash(url string) string {
+	hash := sha256.Sum256([]byte(url))
+	return hex.EncodeToString(hash[:])
 }
 
 func RandText(size int) string {
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") // 52
 	b := make([]rune, size)
 	for i := range b {
-		b[i] = letterRunes[r.Intn(len(letterRunes))]
+		resI, err := rand.Int(rand.Reader, big.NewInt(int64(len(letterRunes))))
+		if err != nil {
+			log.Printf("error rand.Int error: %s", err)
+			return ""
+		}
+		b[i] = letterRunes[resI.Int64()]
 	}
 	return string(b)
 }
