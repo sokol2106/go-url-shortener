@@ -26,7 +26,7 @@ type strWant struct {
 
 func TestShortURL(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
+	sh := shorturl.New("http://localhost:8080", objectStorage)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -103,7 +103,7 @@ func TestShortURL(t *testing.T) {
 
 func TestPostJSON(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
+	sh := shorturl.New("http://localhost:8080", objectStorage)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -170,7 +170,7 @@ func TestPostJSON(t *testing.T) {
 
 func TestGzipCompression(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
+	sh := shorturl.New("http://localhost:8080", objectStorage)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
 
@@ -246,7 +246,7 @@ func TestFileReadWrite(t *testing.T) {
 	objectStorage := storage.NewFile(fileName)
 	defer objectStorage.Close()
 
-	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
+	sh := shorturl.New("http://localhost:8080", objectStorage)
 	server := httptest.NewServer(shorturl.Router(sh))
 
 	tests := []struct {
@@ -303,7 +303,7 @@ func TestFileReadWrite(t *testing.T) {
 
 func TestShortURLTestify(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	shrt := shorturl.New("http://localhost:8080", objectStorage, nil)
+	shrt := shorturl.New("http://localhost:8080", objectStorage)
 
 	//  Post
 	request := httptest.NewRequest("POST", "/", strings.NewReader("https://practicum.yandex.ru/"))
