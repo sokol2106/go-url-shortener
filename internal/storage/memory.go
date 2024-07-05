@@ -51,7 +51,7 @@ func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool)
 }
 
 func (s *Memory) PingContext() error {
-	return errors.New("Ping MEMORY not yet implemented ")
+	return errors.New("ping MEMORY not yet implemented ")
 }
 
 func (s *Memory) Close() error {

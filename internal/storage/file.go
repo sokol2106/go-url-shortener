@@ -95,7 +95,7 @@ func (s *File) find(shortData model.ShortData) *model.ShortData {
 }
 
 func (s *File) PingContext() error {
-	return errors.New("Ping FILE not yet implemented ")
+	return errors.New("ping FILE not yet implemented ")
 }
 
 func (s *File) Close() error {
