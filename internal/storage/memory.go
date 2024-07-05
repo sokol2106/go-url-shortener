@@ -1,35 +1,32 @@
-package memoryStorage
+package storage
 
 import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"log"
 	"math/big"
 )
 
-type MemoryStorage struct {
+type Memory struct {
 	mapData map[string]model.ShortData
 	encoder *json.Encoder
 }
 
-func New() *MemoryStorage {
-	return &MemoryStorage{
+func NewMemory() *Memory {
+	return &Memory{
 		mapData: make(map[string]model.ShortData),
 	}
 }
 
-func (s *MemoryStorage) Close() error {
-	return nil
-}
-
-func (s *MemoryStorage) GetListShortData() map[string]model.ShortData {
+func (s *Memory) GetListShortData() map[string]model.ShortData {
 	return s.mapData
 }
 
-func (s *MemoryStorage) GetURL(shURL string) string {
+func (s *Memory) GetURL(shURL string) string {
 	for _, value := range s.mapData {
 		if shURL == value.ShortURL {
 			return value.OriginalURL
@@ -38,19 +35,27 @@ func (s *MemoryStorage) GetURL(shURL string) string {
 	return ""
 }
 
-func (s *MemoryStorage) AddURL(originalURL string) string {
+func (s *Memory) AddURL(originalURL string) string {
 	hash := GenerateHash(originalURL)
 	shortData, _ := s.getOrCreateShortData(hash, originalURL)
 	return shortData.ShortURL
 }
 
-func (s *MemoryStorage) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
+func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
 	shortData, exist := s.mapData[hash]
 	if !exist {
 		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
 		s.mapData[hash] = shortData
 	}
 	return &shortData, !exist
+}
+
+func (s *Memory) PingContext() error {
+	return errors.New("Ping MEMORY not yet implemented ")
+}
+
+func (s *Memory) Close() error {
+	return nil
 }
 
 func GenerateHash(url string) string {

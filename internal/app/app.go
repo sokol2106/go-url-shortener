@@ -4,9 +4,7 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/server"
-	"github.com/sokol2106/go-url-shortener/internal/storage/fileStorage"
-	"github.com/sokol2106/go-url-shortener/internal/storage/memoryStorage"
-	"github.com/sokol2106/go-url-shortener/internal/storage/postgresql"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"log"
 )
 
@@ -17,21 +15,21 @@ func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath
 	)
 
 	if databaseDSN != "" {
-		db := postgresql.New(databaseDSN)
+		db := storage.NewPostgresql(databaseDSN)
 		err := db.Connect()
 		if err != nil {
 			log.Printf("Error connect db: %s", err)
 		}
 
-		handlerShort = shorturl.New(shCnf.URL(), db, db)
+		handlerShort = shorturl.New(shCnf.URL(), db)
 
 	} else {
 		if fileStoragePath != "" {
-			objectStorage := fileStorage.New(fileStoragePath)
-			handlerShort = shorturl.New(shCnf.URL(), objectStorage, nil)
+			objectStorage := storage.NewFile(fileStoragePath)
+			handlerShort = shorturl.New(shCnf.URL(), objectStorage)
 		} else {
-			objectStorage := memoryStorage.New()
-			handlerShort = shorturl.New(shCnf.URL(), objectStorage, nil)
+			objectStorage := storage.NewMemory()
+			handlerShort = shorturl.New(shCnf.URL(), objectStorage)
 		}
 	}
 

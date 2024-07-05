@@ -6,8 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
-	"github.com/sokol2106/go-url-shortener/internal/storage/fileStorage"
-	"github.com/sokol2106/go-url-shortener/internal/storage/memoryStorage"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -26,7 +25,7 @@ type strWant struct {
 }
 
 func TestShortURL(t *testing.T) {
-	objectStorage := memoryStorage.New()
+	objectStorage := storage.NewMemory()
 	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
@@ -103,7 +102,7 @@ func TestShortURL(t *testing.T) {
 }
 
 func TestPostJSON(t *testing.T) {
-	objectStorage := memoryStorage.New()
+	objectStorage := storage.NewMemory()
 	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
@@ -170,7 +169,7 @@ func TestPostJSON(t *testing.T) {
 }
 
 func TestGzipCompression(t *testing.T) {
-	objectStorage := memoryStorage.New()
+	objectStorage := storage.NewMemory()
 	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
 	server := httptest.NewServer(shorturl.Router(sh))
 	defer server.Close()
@@ -244,7 +243,7 @@ func TestGzipCompression(t *testing.T) {
 
 func TestFileReadWrite(t *testing.T) {
 	fileName := "hort-url-db.json"
-	objectStorage := fileStorage.New(fileName)
+	objectStorage := storage.NewFile(fileName)
 	defer objectStorage.Close()
 
 	sh := shorturl.New("http://localhost:8080", objectStorage, nil)
@@ -283,15 +282,17 @@ func TestFileReadWrite(t *testing.T) {
 				err = response.Body.Close()
 				require.NoError(t, err)
 
-				server.Close()
-				err = sh.Close()
-				require.NoError(t, err)
-
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
 				resURL := objectStorage.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)
+
+				err = sh.Close()
+				require.NoError(t, err)
+
+				server.Close()
+				require.NoError(t, err)
 
 				err = os.Remove(fileName)
 				require.NoError(t, err)
@@ -301,7 +302,7 @@ func TestFileReadWrite(t *testing.T) {
 }
 
 func TestShortURLTestify(t *testing.T) {
-	objectStorage := memoryStorage.New()
+	objectStorage := storage.NewMemory()
 	shrt := shorturl.New("http://localhost:8080", objectStorage, nil)
 
 	//  Post

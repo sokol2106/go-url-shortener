@@ -1,4 +1,4 @@
-package postgresql
+package storage
 
 import (
 	"context"
@@ -12,7 +12,7 @@ type Postgresql struct {
 	config string
 }
 
-func New(cnf string) *Postgresql {
+func NewPostgresql(cnf string) *Postgresql {
 	var pstg = Postgresql{}
 	pstg.config = cnf
 

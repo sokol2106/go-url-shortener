@@ -2,7 +2,7 @@ package test
 
 import (
 	"github.com/sokol2106/go-url-shortener/internal/model"
-	"github.com/sokol2106/go-url-shortener/internal/storage/fileStorage"
+	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
@@ -11,7 +11,7 @@ import (
 
 func TestStorage(t *testing.T) {
 	fileName := "testStorage.json"
-	objectStorage := fileStorage.New(fileName)
+	objectStorage := storage.NewFile(fileName)
 	shortDataTest := model.ShortData{UUID: "testUUID", OriginalURL: "testOriginalURL"}
 
 	t.Run("testStorage", func(t *testing.T) {

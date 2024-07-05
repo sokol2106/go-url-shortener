@@ -11,11 +11,10 @@ import (
 	"net/http"
 )
 
-func New(redirectURL string, strg StorageURL, db Database) *ShortURL {
+func New(redirectURL string, strg StorageURL) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
 	s.storageURL = strg
-	s.database = db
 	return s
 }
 
@@ -92,12 +91,12 @@ func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
-	if s.database == nil {
+	if s.storageURL == nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err := s.database.PingContext()
+	err := s.storageURL.PingContext()
 	if err != nil {
 		s.handlerError("ping db", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -150,14 +149,6 @@ func (s *ShortURL) Close() error {
 	if err != nil {
 		s.handlerError("close storageURL", err)
 	}
-
-	if s.database != nil {
-		err = s.database.Close()
-		if err != nil {
-			s.handlerError("Disconnect db", err)
-		}
-	}
-
 	return err
 }
 

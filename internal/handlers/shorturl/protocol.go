@@ -4,10 +4,6 @@ package shorturl
 type StorageURL interface {
 	AddURL(string) string
 	GetURL(string) string
-	Close() error
-}
-
-type Database interface {
 	PingContext() error
 	Close() error
 }
@@ -15,7 +11,6 @@ type Database interface {
 type ShortURL struct {
 	redirectURL string
 	storageURL  StorageURL
-	database    Database
 }
 
 type RequestJSON struct {
