@@ -10,23 +10,20 @@ import (
 )
 
 func TestStorage(t *testing.T) {
-	var shortDataList storage.ShortDataList
-
 	fileName := "testStorage.json"
-	shortDataList.Init(fileName)
+	objectStorage := storage.NewFile(fileName)
 	shortDataTest := model.ShortData{UUID: "testUUID", OriginalURL: "testOriginalURL"}
 
 	t.Run("testStorage", func(t *testing.T) {
 		// Проверяем сокращение и получение URL
-		shortDataTest.ShortURL = shortDataList.AddURL(shortDataTest.OriginalURL)
-		assert.Equal(t, shortDataTest.OriginalURL, shortDataList.GetURL(shortDataTest.ShortURL))
+		shortDataTest.ShortURL = objectStorage.AddURL(shortDataTest.OriginalURL)
+		assert.Equal(t, shortDataTest.OriginalURL, objectStorage.GetURL(shortDataTest.ShortURL))
 
 	})
 
-	err := shortDataList.Close()
+	err := objectStorage.Close()
 	require.NoError(t, err)
 
 	err = os.Remove(fileName)
 	require.NoError(t, err)
-
 }

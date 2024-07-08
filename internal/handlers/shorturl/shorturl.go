@@ -6,17 +6,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
-	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
 	"log"
 	"net/http"
 )
 
-func New(redirectURL string, strg storage.ShortDataList, db Database) *ShortURL {
+func New(redirectURL string, strg StorageURL) *ShortURL {
 	s := new(ShortURL)
 	s.redirectURL = redirectURL
 	s.storageURL = strg
-	s.database = db
 	return s
 }
 
@@ -93,7 +91,12 @@ func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
-	err := s.database.PingContext()
+	if s.storageURL == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err := s.storageURL.PingContext()
 	if err != nil {
 		s.handlerError("ping db", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -145,10 +148,6 @@ func (s *ShortURL) Close() error {
 	err := s.storageURL.Close()
 	if err != nil {
 		s.handlerError("close storageURL", err)
-	}
-	err = s.database.Disconnect()
-	if err != nil {
-		s.handlerError("Disconnect db", err)
 	}
 	return err
 }
