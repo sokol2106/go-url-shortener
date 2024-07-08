@@ -31,7 +31,7 @@ func (pstg *Postgresql) Connect() error {
 	}
 
 	m, err := migrate.New(
-		"file:///migrations/postgresql/tableshorturl.sql",
+		"file:///migrations",
 		pstg.config)
 
 	if err != nil {
