@@ -31,7 +31,7 @@ func (pstg *Postgresql) Connect() error {
 	}
 
 	m, err := migrate.New(
-		"https://github.com/sokol2106/go-url-shortener/blob/iter11/migrations/postgresql/tableshorturl.sql",
+		"file:https://github.com/sokol2106/go-url-shortener/blob/iter11/migrations/postgresql/tableshorturl.sql",
 		pstg.config)
 
 	if err != nil {
