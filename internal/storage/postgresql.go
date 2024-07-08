@@ -3,7 +3,11 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
 	"time"
 )
 
@@ -22,7 +26,24 @@ func NewPostgresql(cnf string) *Postgresql {
 func (pstg *Postgresql) Connect() error {
 	var err error
 	pstg.db, err = sql.Open("pgx", pstg.config)
-	return err
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.New(
+		"https://github.com/sokol2106/go-url-shortener/blob/iter11/migrations/postgresql/tableshorturl.sql",
+		pstg.config)
+
+	if err != nil {
+		log.Println("error migrate Postgresql", err)
+	}
+
+	if err = m.Up(); err != nil {
+		log.Println("error up Postgresql", err)
+		return err
+	}
+
+	return nil
 }
 
 func (pstg *Postgresql) Close() error {
@@ -39,22 +60,30 @@ func (pstg *Postgresql) PingContext() error {
 }
 
 func (pstg *Postgresql) GetURL(shURL string) string {
-	//for _, value := range s.mapData {
-	//	if shURL == value.ShortURL {
-	//		return value.OriginalURL
-	//	}
-	//	}
-	return ""
+	var originalURL string
+	rows := pstg.db.QueryRowContext(context.Background(), "SELECT key, short, original FROM public.shorturl WHERE short=$1", shURL)
+	err := rows.Scan(&originalURL)
+	if err != nil {
+		log.Println("error scanning short url postgresql", err)
+		return ""
+	}
 
+	return originalURL
 }
 
 func (pstg *Postgresql) AddURL(originalURL string) string {
-	//	hash := GenerateHash(originalURL)
-	//	shortData, isNewShortData := s.getOrCreateShortData(hash, originalURL)
-	//	if isNewShortData && s.isWriteEnable {
-	//		s.writeToFile(shortData)
-	//	}
+	var shortURL string
+	hash := GenerateHash(originalURL)
+	rows := pstg.db.QueryRowContext(context.Background(),
+		"INSERT INTO public.shorturl (key, short, original) VALUES "+
+			" ($1,$2,$3) ON CONFLICT (original) "+
+			"DO UPDATE SET original = EXCLUDED.original RETURNING short", hash, RandText(8), originalURL)
 
-	//	return shortData.ShortURL
-	return ""
+	err := rows.Scan(&shortURL)
+	if err != nil {
+		log.Println("error adding short url postgresql", err)
+		return ""
+	}
+
+	return shortURL
 }
