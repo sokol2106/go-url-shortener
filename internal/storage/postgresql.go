@@ -32,7 +32,7 @@ func (pstg *Postgresql) Connect() error {
 	}
 
 	m, err := migrate.New(
-		"file:///migrations",
+		"file:///migrations/postgresql/",
 		pstg.config)
 
 	if err != nil {
