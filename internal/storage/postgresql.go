@@ -21,7 +21,6 @@ type Postgresql struct {
 func NewPostgresql(cnf string) *Postgresql {
 	var pstg = Postgresql{}
 	pstg.config = cnf
-
 	return &pstg
 }
 
@@ -43,10 +42,10 @@ func (pstg *Postgresql) Connect() error {
 		return nil
 	}
 
-	if err = m.Up(); err != nil {
-		log.Println("error up Postgresql", err)
-		return err
-	}
+	//if err = m.Up(); err != nil {
+	//	log.Println("error up Postgresql", err)
+	//		return err
+	//	}
 
 	return nil
 }
