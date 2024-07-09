@@ -321,7 +321,7 @@ func TestShortURLTestify(t *testing.T) {
 	err := shrt.Close()
 	require.NoError(t, err)
 
-	// id и как тут не получить
+	// id ни как тут не получить
 	// resBody, err := io.ReadAll(response.Body)
 	// require.NoError(t, err)
 	// request = httptest.NewRequest("GET", "/", strings.NewReader(string(resBody)))
@@ -343,6 +343,8 @@ func TestShortURLPostBatch(t *testing.T) {
 		shrt.PostBatch(response, request)
 		assert.Equal(t, http.StatusCreated, response.Code)
 
+		//res := objectStorage.GetURL("BdMzIZPj")
+		//assert.Equal(t, "https://www.ozon.ru", res)
 		shrt.Close()
 
 	})

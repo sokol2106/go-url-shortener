@@ -189,8 +189,8 @@ func Router(sh *ShortURL) chi.Router {
 	router.Post("/", http.HandlerFunc(sh.Post))
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
 	router.Post("/api/shorten/batch", http.HandlerFunc(sh.PostBatch))
-	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
+	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/ping", http.HandlerFunc(sh.GetPing))
 
 	return router

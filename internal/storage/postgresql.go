@@ -65,7 +65,7 @@ func (pstg *Postgresql) PingContext() error {
 
 func (pstg *Postgresql) GetURL(shURL string) string {
 	var originalURL string
-	rows := pstg.db.QueryRowContext(context.Background(), "SELECT key, short, original FROM public.shorturl WHERE short=$1", shURL)
+	rows := pstg.db.QueryRowContext(context.Background(), "SELECT original FROM public.shorturl WHERE short=$1", shURL)
 	err := rows.Scan(&originalURL)
 	if err != nil {
 		log.Println("error scanning short url postgresql", err)
