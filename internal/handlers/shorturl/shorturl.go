@@ -1,6 +1,7 @@
 package shorturl
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -62,20 +63,6 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
-	/*if path == "ping" {
-		err := s.database.PingContext()
-		if err != nil {
-			s.handlerError("ping db", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	*/
-
 	URL := s.storageURL.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
@@ -144,6 +131,36 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
+func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
+	var (
+		requestBatch  []RequestBatch
+		responseBatch []ResponseBatch
+		resBody       bytes.Buffer
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
+		s.handlerError("unmarshal body", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	responseBatch = s.storageURL.AddBatch(requestBatch)
+	if responseBatch != nil {
+		err := json.NewEncoder(&resBody).Encode(responseBatch)
+		if err != nil {
+			s.handlerError("marshal body", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		bodyB, err := io.ReadAll(&resBody)
+		defer r.Body.Close()
+		w.Write(bodyB)
+	}
+
+}
+
 func (s *ShortURL) Close() error {
 	err := s.storageURL.Close()
 	if err != nil {
@@ -162,6 +179,7 @@ func Router(sh *ShortURL) chi.Router {
 	// router
 	router.Post("/", http.HandlerFunc(sh.Post))
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
+	router.Post("/api/shorten/batch", http.HandlerFunc(sh.PostBatch))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
 	router.Get("/ping", http.HandlerFunc(sh.GetPing))

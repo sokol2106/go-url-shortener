@@ -329,3 +329,17 @@ func TestShortURLTestify(t *testing.T) {
 	// assert.Equal(t, http.StatusOK, response.Code)
 
 }
+
+func TestShortURLPostBatch(t *testing.T) {
+	objectStorage := storage.NewMemory()
+	shrt := shorturl.New("http://localhost:8080", objectStorage)
+
+	t.Run("Test POST Batch", func(t *testing.T) {
+		request := httptest.NewRequest("POST", "/", strings.NewReader(""+
+			"[{\"correlation_id\": \"1111\",\"original_url\": \"https://www.ozon.ru\"},"+
+			"{\"correlation_id\": \"2222\",\"original_url\": \"https://ya.ru\"}]"))
+		response := httptest.NewRecorder()
+		shrt.PostBatch(response, request)
+		assert.Equal(t, http.StatusOK, response.Code)
+	})
+}

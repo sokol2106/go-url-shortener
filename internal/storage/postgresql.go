@@ -8,6 +8,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"log"
 	"time"
 )
@@ -88,4 +89,26 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 	}
 
 	return shortURL
+}
+
+func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch {
+	resp := make([]shorturl.ResponseBatch, len(req))
+	countInsert := 1000
+	if len(req) < countInsert {
+		countInsert = len(req)
+	}
+	//	shortData := make([]model.ShortData, 0, countInsert)
+
+	for i, val := range req {
+		//hash := GenerateHash(val.OriginalURL)
+		//shrt := RandText(8)
+		//mdl := model.ShortData{UUID: hash, ShortURL: shrt, OriginalURL: val.OriginalURL}
+		//shortData = append(shortData, mdl)
+
+		short := pstg.AddURL(val.OriginalURL)
+
+		resp[i] = shorturl.ResponseBatch{CorrelationId: val.CorrelationId, ShortURL: short}
+	}
+
+	return resp
 }

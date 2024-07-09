@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"log"
 	"math/big"
@@ -39,6 +40,16 @@ func (s *Memory) AddURL(originalURL string) string {
 	hash := GenerateHash(originalURL)
 	shortData, _ := s.getOrCreateShortData(hash, originalURL)
 	return shortData.ShortURL
+}
+
+func (s *Memory) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch {
+	resp := make([]shorturl.ResponseBatch, len(req))
+	for i, val := range req {
+		sh := s.AddURL(val.OriginalURL)
+		resp[i] = shorturl.ResponseBatch{CorrelationId: val.CorrelationId, ShortURL: sh}
+	}
+
+	return resp
 }
 
 func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
