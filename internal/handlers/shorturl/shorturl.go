@@ -180,6 +180,8 @@ func (s *ShortURL) Close() error {
 func Router(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
 
+	log.Printf("REDIRECT: %s", sh.redirectURL)
+
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)
 	router.Use(logger.LoggingResponseRequest)
