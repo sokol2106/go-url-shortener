@@ -38,7 +38,6 @@ func (s *ShortURL) handlerError(content string, err error) {
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
-
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
@@ -74,6 +73,7 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
+	log.Printf("get ALL ")
 	w.WriteHeader(http.StatusBadRequest)
 }
 
@@ -87,6 +87,7 @@ func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.handlerError("ping db", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
