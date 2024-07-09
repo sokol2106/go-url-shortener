@@ -331,6 +331,7 @@ func TestShortURLTestify(t *testing.T) {
 }
 
 func TestShortURLPostBatch(t *testing.T) {
+
 	objectStorage := storage.NewMemory()
 	shrt := shorturl.New("http://localhost:8080", objectStorage)
 
@@ -341,5 +342,8 @@ func TestShortURLPostBatch(t *testing.T) {
 		response := httptest.NewRecorder()
 		shrt.PostBatch(response, request)
 		assert.Equal(t, http.StatusCreated, response.Code)
+
+		shrt.Close()
+
 	})
 }

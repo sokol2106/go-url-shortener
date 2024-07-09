@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
@@ -32,9 +33,11 @@ func (pstg *Postgresql) Connect() error {
 		return err
 	}
 
-	m, err := migrate.New(
-		"file://migrations/postgresql",
-		pstg.config)
+	driver, _ := postgres.WithInstance(pstg.db, &postgres.Config{})
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://../migrations/postgresql",
+		"postgres", driver)
 
 	if err != nil {
 		log.Println("error migrate Postgresql", err)
@@ -79,8 +82,11 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 	hash := GenerateHash(originalURL)
 	rows := pstg.db.QueryRowContext(context.Background(),
 		"INSERT INTO public.shorturl (key, short, original) VALUES "+
-			" ($1,$2,$3) ON CONFLICT (original) "+
-			"DO UPDATE SET original = EXCLUDED.original RETURNING short", hash, RandText(8), originalURL)
+			" ($1 ,$2 ,$3 ) ON CONFLICT (original) "+
+			"DO UPDATE SET original = EXCLUDED.original RETURNING short",
+		hash,
+		RandText(8),
+		originalURL)
 
 	err := rows.Scan(&shortURL)
 	if err != nil {
