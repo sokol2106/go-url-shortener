@@ -69,7 +69,7 @@ func (pstg *Postgresql) GetURL(shURL string) string {
 	err := rows.Scan(&originalURL)
 	if err != nil {
 		log.Println("error scanning short url postgresql", err)
-		return ""
+		return err.Error()
 	}
 
 	return originalURL
