@@ -64,13 +64,13 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
 	URL := s.storageURL.GetURL(path)
-	if URL != "" {
-		w.Header().Set("Location", URL)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-		return
-	}
+	//	if URL != "" {
+	w.Header().Set("Location", URL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
+	//	return
+	//	}
 
-	w.WriteHeader(http.StatusBadRequest)
+	//	w.WriteHeader(http.StatusBadRequest)
 }
 
 func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {

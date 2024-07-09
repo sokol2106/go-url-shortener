@@ -88,9 +88,6 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 		return ""
 	}
 
-	if shortURL == "" {
-		return "ggggggggggg"
-	}
 	return shortURL
 }
 
