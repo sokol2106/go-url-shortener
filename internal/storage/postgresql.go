@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -36,7 +35,7 @@ func (pstg *Postgresql) Connect() error {
 	driver, _ := postgres.WithInstance(pstg.db, &postgres.Config{})
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://../migrations/postgresql",
+		"file://migrations/postgresql",
 		"postgres", driver)
 
 	if err != nil {
