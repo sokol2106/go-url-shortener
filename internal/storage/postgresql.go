@@ -85,9 +85,12 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 	err := rows.Scan(&shortURL)
 	if err != nil {
 		log.Println("error adding short url postgresql", err)
-		return "GGGGGGGGGGGGG"
+		return ""
 	}
 
+	if shortURL == "" {
+		return "ggggggggggg"
+	}
 	return shortURL
 }
 
