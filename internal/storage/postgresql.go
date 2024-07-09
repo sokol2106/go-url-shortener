@@ -69,7 +69,7 @@ func (pstg *Postgresql) GetURL(shURL string) string {
 	err := rows.Scan(&originalURL)
 	if err != nil {
 		log.Println("error scanning short url postgresql", err)
-		return err.Error()
+		return ""
 	}
 
 	return originalURL
@@ -110,7 +110,7 @@ func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.Respons
 		//shortData = append(shortData, mdl)
 
 		short := pstg.AddURL(val.OriginalURL)
-
+		log.Println("ADD URL %s  short %s", val.OriginalURL, short)
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: short}
 	}
 

@@ -72,6 +72,7 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
+
 	w.WriteHeader(http.StatusBadRequest)
 }
 
