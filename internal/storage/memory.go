@@ -46,7 +46,7 @@ func (s *Memory) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch 
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
 		sh := s.AddURL(val.OriginalURL)
-		resp[i] = shorturl.ResponseBatch{CorrelationId: val.CorrelationId, ShortURL: sh}
+		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: sh}
 	}
 
 	return resp

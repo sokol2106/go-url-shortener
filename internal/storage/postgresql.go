@@ -93,10 +93,10 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 
 func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch {
 	resp := make([]shorturl.ResponseBatch, len(req))
-	countInsert := 1000
-	if len(req) < countInsert {
-		countInsert = len(req)
-	}
+	//countInsert := 1000
+	//if len(req) < countInsert {
+	//		countInsert = len(req)
+	//	}
 	//	shortData := make([]model.ShortData, 0, countInsert)
 
 	for i, val := range req {
@@ -107,7 +107,7 @@ func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.Respons
 
 		short := pstg.AddURL(val.OriginalURL)
 
-		resp[i] = shorturl.ResponseBatch{CorrelationId: val.CorrelationId, ShortURL: short}
+		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: short}
 	}
 
 	return resp

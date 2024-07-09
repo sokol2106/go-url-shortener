@@ -153,8 +153,15 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
 		bodyB, err := io.ReadAll(&resBody)
+		if err != nil {
+			s.handlerError("read body", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 		defer r.Body.Close()
 		w.Write(bodyB)
 	}
