@@ -170,6 +170,9 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Close() error {
+
+	log.Printf("CLOSE ")
+
 	err := s.storageURL.Close()
 	if err != nil {
 		s.handlerError("close storageURL", err)
