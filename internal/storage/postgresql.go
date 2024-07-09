@@ -28,23 +28,8 @@ func (pstg *Postgresql) Connect() error {
 	var err error
 	pstg.db, err = sql.Open("pgx", pstg.config)
 	if err != nil {
+		log.Println("error connecting to Postgresql ", err)
 		return err
-	}
-
-	driver, _ := postgres.WithInstance(pstg.db, &postgres.Config{})
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations/postgresql",
-		"postgres", driver)
-
-	if err != nil {
-		log.Println("error migrate Postgresql", err)
-		return nil
-	}
-
-	if err = m.Up(); err != nil {
-		log.Println("error up Postgresql", err)
-		//		return err
 	}
 
 	return nil
@@ -64,6 +49,9 @@ func (pstg *Postgresql) PingContext() error {
 }
 
 func (pstg *Postgresql) GetURL(shURL string) string {
+
+	log.Printf("get Postgresql: %s", shURL)
+
 	var originalURL string
 	rows := pstg.db.QueryRowContext(context.Background(), "SELECT original FROM public.shorturl WHERE short=$1", shURL)
 	err := rows.Scan(&originalURL)
@@ -97,22 +85,31 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 
 func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch {
 	resp := make([]shorturl.ResponseBatch, len(req))
-	//countInsert := 1000
-	//if len(req) < countInsert {
-	//		countInsert = len(req)
-	//	}
-	//	shortData := make([]model.ShortData, 0, countInsert)
-
 	for i, val := range req {
-		//hash := GenerateHash(val.OriginalURL)
-		//shrt := RandText(8)
-		//mdl := model.ShortData{UUID: hash, ShortURL: shrt, OriginalURL: val.OriginalURL}
-		//shortData = append(shortData, mdl)
-
 		short := pstg.AddURL(val.OriginalURL)
 		log.Printf("ADD path: %s, URL: %s", short, val.OriginalURL)
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: short}
 	}
-
 	return resp
+}
+
+func (pstg *Postgresql) Migrations(pathFiles string) error {
+	driver, err := postgres.WithInstance(pstg.db, &postgres.Config{})
+	if err != nil {
+		log.Printf("error creating postgres driver: %v", err)
+		return err
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(pathFiles, "postgres", driver)
+	if err != nil {
+		log.Println("error migrate Postgresql", err)
+		return err
+	}
+
+	if err = m.Up(); err != nil {
+		log.Println("error up Postgresql", err)
+		return err
+	}
+
+	return nil
 }

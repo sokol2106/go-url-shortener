@@ -17,6 +17,7 @@ func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath
 	if databaseDSN != "" {
 		db := storage.NewPostgresql(databaseDSN)
 		err := db.Connect()
+		db.Migrations("file://migrations/postgresql")
 		if err != nil {
 			log.Printf("Error connect db: %s", err)
 		}

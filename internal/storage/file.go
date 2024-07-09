@@ -65,6 +65,9 @@ func (s *File) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch {
 }
 
 func (s *File) GetURL(shURL string) string {
+
+	log.Printf("get file: %s", shURL)
+
 	shortData := s.find(model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
 	if shortData == nil {
 		return ""

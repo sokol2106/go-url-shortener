@@ -28,6 +28,9 @@ func (s *Memory) GetListShortData() map[string]model.ShortData {
 }
 
 func (s *Memory) GetURL(shURL string) string {
+
+	log.Printf("get Memory: %s", shURL)
+
 	for _, value := range s.mapData {
 		if shURL == value.ShortURL {
 			return value.OriginalURL
