@@ -110,7 +110,7 @@ func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.Respons
 		//shortData = append(shortData, mdl)
 
 		short := pstg.AddURL(val.OriginalURL)
-		log.Println("ADD URL %s  short %s", val.OriginalURL, short)
+		log.Printf("ADD path: %s, URL: %s", short, val.OriginalURL)
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: short}
 	}
 

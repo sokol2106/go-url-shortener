@@ -64,15 +64,11 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
 	URL := s.storageURL.GetURL(path)
-
-	log.Printf("path: %s, URL: %s", path, URL)
-
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
-
 	w.WriteHeader(http.StatusBadRequest)
 }
 
