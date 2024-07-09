@@ -340,6 +340,6 @@ func TestShortURLPostBatch(t *testing.T) {
 			"{\"correlation_id\": \"2222\",\"original_url\": \"https://ya.ru\"}]"))
 		response := httptest.NewRecorder()
 		shrt.PostBatch(response, request)
-		assert.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, http.StatusCreated, response.Code)
 	})
 }
