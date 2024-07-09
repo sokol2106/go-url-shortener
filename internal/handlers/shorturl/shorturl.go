@@ -63,6 +63,7 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
+	log.Printf("get get get : %s", path)
 	URL := s.storageURL.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
