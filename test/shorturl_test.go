@@ -321,11 +321,43 @@ func TestShortURLTestify(t *testing.T) {
 	err := shrt.Close()
 	require.NoError(t, err)
 
-	// id и как тут не получить
+	// id ни как тут не получить
 	// resBody, err := io.ReadAll(response.Body)
 	// require.NoError(t, err)
 	// request = httptest.NewRequest("GET", "/", strings.NewReader(string(resBody)))
 	// shrt.Get(response, request)
 	// assert.Equal(t, http.StatusOK, response.Code)
 
+}
+
+func TestShortURLPostBatch(t *testing.T) {
+
+	objectStorage := storage.NewMemory()
+	// "host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable"
+	//objectStorage := storage.NewPostgresql("host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable")
+	//err := objectStorage.Connect()
+	//if err != nil {
+	//	panic(err)
+	//	}
+
+	//err = objectStorage.Migrations("file://../migrations/postgresql")
+	//if err != nil {
+	//		panic(err)
+	//	}
+
+	shrt := shorturl.New("http://localhost:8080", objectStorage)
+
+	t.Run("Test POST Batch", func(t *testing.T) {
+		request := httptest.NewRequest("POST", "/", strings.NewReader(""+
+			"[{\"correlation_id\": \"1111\",\"original_url\": \"https://www.ozon.ru\"},"+
+			"{\"correlation_id\": \"2222\",\"original_url\": \"https://ya.ru\"}]"))
+		response := httptest.NewRecorder()
+		shrt.PostBatch(response, request)
+		assert.Equal(t, http.StatusCreated, response.Code)
+
+		//res := objectStorage.GetURL("BdMzIZPj")
+		//assert.Equal(t, "https://www.ozon.ru", res)
+		shrt.Close()
+
+	})
 }

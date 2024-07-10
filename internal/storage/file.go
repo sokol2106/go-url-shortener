@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"log"
 	"os"
@@ -41,14 +42,6 @@ func NewFile(filename string) *File {
 	return &resFile
 }
 
-func (s *File) GetURL(shURL string) string {
-	shortData := s.find(model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
-	if shortData == nil {
-		return ""
-	}
-	return shortData.OriginalURL
-}
-
 func (s *File) AddURL(originalURL string) string {
 	hash := GenerateHash(originalURL)
 	shortData, isNewShortData := s.getOrCreateShortData(hash, originalURL)
@@ -59,6 +52,27 @@ func (s *File) AddURL(originalURL string) string {
 	}
 
 	return shortData.ShortURL
+}
+
+func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) []shorturl.ResponseBatch {
+	resp := make([]shorturl.ResponseBatch, len(req))
+	for i, val := range req {
+		sh := s.AddURL(val.OriginalURL)
+		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
+	}
+
+	return resp
+}
+
+func (s *File) GetURL(shURL string) string {
+
+	log.Printf("get file: %s", shURL)
+
+	shortData := s.find(model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
+	if shortData == nil {
+		return ""
+	}
+	return shortData.OriginalURL
 }
 
 func (s *File) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {

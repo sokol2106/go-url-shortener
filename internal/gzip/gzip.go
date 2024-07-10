@@ -64,7 +64,7 @@ func (c *compressReader) Close() error {
 
 func СompressionResponseRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		log.Printf("ZIIIP : %s", r.URL.Path)
 		response := w
 
 		// Write

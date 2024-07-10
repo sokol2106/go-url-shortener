@@ -1,6 +1,7 @@
 package shorturl
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -33,11 +34,10 @@ func (s *ShortURL) createRedirectURL(url string) string {
 }
 
 func (s *ShortURL) handlerError(content string, err error) {
-	log.Printf("Error %s: %s", content, err)
+	log.Printf("error %s: %s", content, err)
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
-
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
@@ -62,31 +62,18 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
-	/*if path == "ping" {
-		err := s.database.PingContext()
-		if err != nil {
-			s.handlerError("ping db", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	*/
-
+	log.Printf("get get get : %s", path)
 	URL := s.storageURL.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
-
 	w.WriteHeader(http.StatusBadRequest)
 }
 
 func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
+	log.Printf("get ALL ")
 	w.WriteHeader(http.StatusBadRequest)
 }
 
@@ -100,6 +87,7 @@ func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.handlerError("ping db", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -144,7 +132,47 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
+func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
+	var (
+		requestBatch  []RequestBatch
+		responseBatch []ResponseBatch
+		resBody       bytes.Buffer
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
+		s.handlerError("unmarshal body", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	responseBatch = s.storageURL.AddBatch(requestBatch, s.redirectURL)
+	if responseBatch != nil {
+		err := json.NewEncoder(&resBody).Encode(responseBatch)
+		if err != nil {
+			s.handlerError("marshal body", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		bodyB, err := io.ReadAll(&resBody)
+		if err != nil {
+			s.handlerError("read body", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		defer r.Body.Close()
+		w.Write(bodyB)
+	}
+
+}
+
 func (s *ShortURL) Close() error {
+
+	log.Printf("CLOSE ")
+
 	err := s.storageURL.Close()
 	if err != nil {
 		s.handlerError("close storageURL", err)
@@ -155,6 +183,8 @@ func (s *ShortURL) Close() error {
 func Router(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
 
+	log.Printf("REDIRECT: %s", sh.redirectURL)
+
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)
 	router.Use(logger.LoggingResponseRequest)
@@ -162,8 +192,9 @@ func Router(sh *ShortURL) chi.Router {
 	// router
 	router.Post("/", http.HandlerFunc(sh.Post))
 	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
-	router.Get("/*", http.HandlerFunc(sh.GetAll))
+	router.Post("/api/shorten/batch", http.HandlerFunc(sh.PostBatch))
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
+	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/ping", http.HandlerFunc(sh.GetPing))
 
 	return router
