@@ -1,3 +1,4 @@
+//go:generate mockgen -destination=../../../mocks/mock_shorturl.go -package=shorturl . StorageURL
 package shorturl
 
 // Для дальнейшей модификации

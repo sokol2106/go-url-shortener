@@ -34,7 +34,7 @@ func (s *ShortURL) createRedirectURL(url string) string {
 }
 
 func (s *ShortURL) handlerError(content string, err error) {
-	log.Printf("Error %s: %s", content, err)
+	log.Printf("error %s: %s", content, err)
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
