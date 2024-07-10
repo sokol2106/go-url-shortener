@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -91,12 +92,12 @@ func (pstg *Postgresql) AddURL(originalURL string) string {
 	return shortURL
 }
 
-func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch) []shorturl.ResponseBatch {
+func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch, redirectURL string) []shorturl.ResponseBatch {
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
-		short := pstg.AddURL(val.OriginalURL)
-		log.Printf("ADD path: %s, URL: %s", short, val.OriginalURL)
-		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: short}
+		sh := pstg.AddURL(val.OriginalURL)
+		log.Printf("ADD path: %s, URL: %s", sh, val.OriginalURL)
+		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 	return resp
 }

@@ -4,7 +4,7 @@ package shorturl
 // Для дальнейшей модификации
 type StorageURL interface {
 	AddURL(string) string
-	AddBatch([]RequestBatch) []ResponseBatch
+	AddBatch([]RequestBatch, string) []ResponseBatch
 	GetURL(string) string
 	PingContext() error
 	Close() error

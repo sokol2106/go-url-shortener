@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -27,9 +28,9 @@ func TestStorageFile(t *testing.T) {
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
-		resp := objectStorage.AddBatch(req)
-		original0 := objectStorage.GetURL(resp[0].ShortURL)
-		original1 := objectStorage.GetURL(resp[1].ShortURL)
+		resp := objectStorage.AddBatch(req, "")
+		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
@@ -40,8 +41,8 @@ func TestStorageFile(t *testing.T) {
 		// Проверка загрузки из файла
 		objectStorage = storage.NewFile(fileName)
 
-		original0 = objectStorage.GetURL(resp[0].ShortURL)
-		original1 = objectStorage.GetURL(resp[1].ShortURL)
+		original0 = objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 = objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
@@ -71,9 +72,9 @@ func TestStorageMemory(t *testing.T) {
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
-		resp := objectStorage.AddBatch(req)
-		original0 := objectStorage.GetURL(resp[0].ShortURL)
-		original1 := objectStorage.GetURL(resp[1].ShortURL)
+		resp := objectStorage.AddBatch(req, "")
+		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)

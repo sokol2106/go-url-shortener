@@ -145,7 +145,7 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBatch = s.storageURL.AddBatch(requestBatch)
+	responseBatch = s.storageURL.AddBatch(requestBatch, s.redirectURL)
 	if responseBatch != nil {
 		err := json.NewEncoder(&resBody).Encode(responseBatch)
 		if err != nil {
