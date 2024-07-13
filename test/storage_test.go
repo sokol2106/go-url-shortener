@@ -24,18 +24,18 @@ func TestStorageFile(t *testing.T) {
 
 	t.Run("testStorageFile", func(t *testing.T) {
 		// Проверка заполнения файла
-		short := objectStorage.AddURL(original)
+		short, err := objectStorage.AddURL(original)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
-		resp := objectStorage.AddBatch(req, "")
+		resp, err := objectStorage.AddBatch(req, "")
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
-		err := objectStorage.Close()
+		err = objectStorage.Close()
 		require.NoError(t, err)
 
 		// Проверка загрузки из файла
@@ -68,49 +68,44 @@ func TestStorageMemory(t *testing.T) {
 	original := "testOriginalURL"
 
 	t.Run("testStorageMemory", func(t *testing.T) {
-		short := objectStorage.AddURL(original)
+		short, err := objectStorage.AddURL(original)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
-		resp := objectStorage.AddBatch(req, "")
+		resp, err := objectStorage.AddBatch(req, "")
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
-		err := objectStorage.Close()
+		err = objectStorage.Close()
 		require.NoError(t, err)
 
 	})
 }
 
 func TestStoragePostgresql(t *testing.T) {
-	/*	var strg storage.ShortDataList
-		strg.Init("")
-		db := postgresql.New("host=localhost port=5432 user=postgres password=12345678 dbname=videos sslmode=disable")
-		err := db.Connect()
-		if err != nil {
-			t.Error(err)
-			return
-		}
+	/*store := storage.NewPostgresql("host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable")
+	err := store.Connect()
+	defer store.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-		//sh := shorturl.New("http://localhost:8080", strg, db)
+	t.Run("testStoragePostgresql", func(t *testing.T) {
+		sh := shorturl.New("http://localhost:8080", store)
 
-		//request := httptest.NewRequest("GET", "/", strings.NewReader("https://practicum.yandex.ru/"))
-		//response := httptest.NewRecorder()
-		//sh.GetPingDB(response, request)
+		request := httptest.NewRequest("Post", "/", strings.NewReader("https://practicum.yandex.ru/"))
+		response := httptest.NewRecorder()
+		sh.Post(response, request)
 
-		err = db.PingContext()
-		if err != nil {
-			t.Error(err)
-			return
-		}
+		result := response.Result()
+		assert.Equal(t, http.StatusCreated, result.StatusCode)
 
-		err = db.Disconnect()
-		if err != nil {
-			t.Error(err)
-		}
+	})
+
 	*/
 }
 

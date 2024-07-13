@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"log"
@@ -40,20 +41,30 @@ func (s *Memory) GetURL(shURL string) string {
 	return ""
 }
 
-func (s *Memory) AddURL(originalURL string) string {
+func (s *Memory) AddURL(originalURL string) (string, error) {
+	var err error
+	err = nil
 	hash := GenerateHash(originalURL)
-	shortData, _ := s.getOrCreateShortData(hash, originalURL)
-	return shortData.ShortURL
+	shortData, exist := s.getOrCreateShortData(hash, originalURL)
+	if exist {
+		err = cerrors.ConflictError
+	}
+	return shortData.ShortURL, err
 }
 
-func (s *Memory) AddBatch(req []shorturl.RequestBatch, redirectURL string) []shorturl.ResponseBatch {
+func (s *Memory) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+	var err error
+	err = nil
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
-		sh := s.AddURL(val.OriginalURL)
+		sh, addErr := s.AddURL(val.OriginalURL)
+		if addErr != nil {
+			err = addErr
+		}
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 
-	return resp
+	return resp, err
 }
 
 func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
@@ -62,7 +73,7 @@ func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool)
 		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
 		s.mapData[hash] = shortData
 	}
-	return &shortData, !exist
+	return &shortData, exist
 }
 
 func (s *Memory) PingContext() error {

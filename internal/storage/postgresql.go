@@ -3,12 +3,14 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"log"
 	"time"
@@ -72,34 +74,50 @@ func (pstg *Postgresql) GetURL(shURL string) string {
 	return originalURL
 }
 
-func (pstg *Postgresql) AddURL(originalURL string) string {
-	var shortURL string
+func (pstg *Postgresql) AddURL(originalURL string) (string, error) {
+	var err error
+
+	err = nil
 	hash := GenerateHash(originalURL)
-	rows := pstg.db.QueryRowContext(context.Background(),
-		"INSERT INTO public.shorturl (key, short, original) VALUES "+
-			" ($1 ,$2 ,$3 ) ON CONFLICT (original) "+
-			"DO UPDATE SET original = EXCLUDED.original RETURNING short",
+	shortURL := RandText(8)
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original) VALUES ($1 ,$2 ,$3 )",
 		hash,
-		RandText(8),
+		shortURL,
 		originalURL)
 
-	err := rows.Scan(&shortURL)
-	if err != nil {
-		log.Println("error adding short url postgresql", err)
-		return ""
+	if errInser != nil {
+		row, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
+		if errSelect != nil {
+			return "", errSelect
+		}
+
+		if row.Next() {
+			errScan := row.Scan(&shortURL)
+			if errScan != nil {
+				return "", errScan
+			}
+		}
+		err = cerrors.ConflictError
 	}
 
-	return shortURL
+	return shortURL, err
 }
 
-func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch, redirectURL string) []shorturl.ResponseBatch {
+func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+	var err error
+	err = nil
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
-		sh := pstg.AddURL(val.OriginalURL)
-		log.Printf("ADD path: %s, URL: %s", sh, val.OriginalURL)
+		sh, errAdd := pstg.AddURL(val.OriginalURL)
+		if errAdd != nil {
+			if !errors.Is(errAdd, cerrors.ConflictError) {
+				return nil, errAdd
+			}
+			err = errAdd
+		}
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
-	return resp
+	return resp, err
 }
 
 func (pstg *Postgresql) Migrations(pathFiles string) error {

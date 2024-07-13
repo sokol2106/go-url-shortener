@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
-	"log"
 	"os"
 )
 
@@ -42,32 +42,43 @@ func NewFile(filename string) *File {
 	return &resFile
 }
 
-func (s *File) AddURL(originalURL string) string {
+func (s *File) AddURL(originalURL string) (string, error) {
+	var err error
+	err = cerrors.ConflictError
 	hash := GenerateHash(originalURL)
 	shortData, isNewShortData := s.getOrCreateShortData(hash, originalURL)
-	if isNewShortData && s.isWriteEnable {
-		if err := s.encoder.Encode(&shortData); err != nil {
-			log.Printf("Write json file filename: %s , error: %s", s.file.Name(), err)
+	if isNewShortData {
+		err = nil
+		if s.isWriteEnable {
+			errEncode := s.encoder.Encode(&shortData)
+			if errEncode != nil {
+				err = errEncode
+			}
 		}
 	}
 
-	return shortData.ShortURL
+	return shortData.ShortURL, err
 }
 
-func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) []shorturl.ResponseBatch {
+func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+	var err error
+	err = nil
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
-		sh := s.AddURL(val.OriginalURL)
+		sh, errAdd := s.AddURL(val.OriginalURL)
+		if errAdd != nil {
+			if !errors.Is(errAdd, cerrors.ConflictError) {
+				return nil, errAdd
+			}
+
+		}
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 
-	return resp
+	return resp, err
 }
 
 func (s *File) GetURL(shURL string) string {
-
-	log.Printf("get file: %s", shURL)
-
 	shortData := s.find(model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
 	if shortData == nil {
 		return ""

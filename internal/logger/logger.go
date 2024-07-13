@@ -2,7 +2,6 @@ package logger
 
 import (
 	"go.uber.org/zap"
-	"log"
 	"net/http"
 	"time"
 )
@@ -42,8 +41,6 @@ func LoggingResponseRequest(handler http.Handler) http.Handler {
 			ResponseWriter: w,
 			responseData:   responseData,
 		}
-
-		log.Printf("LOOOOOG : %s", r.URL.Path)
 
 		handler.ServeHTTP(&lw, r)
 
