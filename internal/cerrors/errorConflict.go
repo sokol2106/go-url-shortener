@@ -20,4 +20,4 @@ func (e *errorConflict) Unwrap() error {
 }
 */
 
-var ConflictError = errors.New("conflict add original URL")
+var ErrNewShortURL = errors.New("conflict add original URL")

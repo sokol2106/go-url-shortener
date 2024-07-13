@@ -43,8 +43,7 @@ func NewFile(filename string) *File {
 }
 
 func (s *File) AddURL(originalURL string) (string, error) {
-	var err error
-	err = cerrors.ConflictError
+	err := cerrors.ErrNewShortURL
 	hash := GenerateHash(originalURL)
 	shortData, isNewShortData := s.getOrCreateShortData(hash, originalURL)
 	if isNewShortData {
@@ -61,13 +60,12 @@ func (s *File) AddURL(originalURL string) (string, error) {
 }
 
 func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
-	var err error
-	err = nil
+	var err error = nil
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
 		sh, errAdd := s.AddURL(val.OriginalURL)
 		if errAdd != nil {
-			if !errors.Is(errAdd, cerrors.ConflictError) {
+			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd
 			}
 

@@ -86,18 +86,18 @@ func (pstg *Postgresql) AddURL(originalURL string) (string, error) {
 		originalURL)
 
 	if errInser != nil {
-		row, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
+		rows, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
 		if errSelect != nil {
 			return "", errSelect
 		}
 
-		if row.Next() {
-			errScan := row.Scan(&shortURL)
+		if rows.Next() {
+			errScan := rows.Scan(&shortURL)
 			if errScan != nil {
 				return "", errScan
 			}
 		}
-		err = cerrors.ConflictError
+		err = cerrors.ErrNewShortURL
 	}
 
 	return shortURL, err
@@ -110,7 +110,7 @@ func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch, redirectURL string
 	for i, val := range req {
 		sh, errAdd := pstg.AddURL(val.OriginalURL)
 		if errAdd != nil {
-			if !errors.Is(errAdd, cerrors.ConflictError) {
+			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd
 			}
 			err = errAdd

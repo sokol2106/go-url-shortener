@@ -42,19 +42,17 @@ func (s *Memory) GetURL(shURL string) string {
 }
 
 func (s *Memory) AddURL(originalURL string) (string, error) {
-	var err error
-	err = nil
+	var err error = nil
 	hash := GenerateHash(originalURL)
 	shortData, exist := s.getOrCreateShortData(hash, originalURL)
 	if exist {
-		err = cerrors.ConflictError
+		err = cerrors.ErrNewShortURL
 	}
 	return shortData.ShortURL, err
 }
 
 func (s *Memory) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
-	var err error
-	err = nil
+	var err error = nil
 	resp := make([]shorturl.ResponseBatch, len(req))
 	for i, val := range req {
 		sh, addErr := s.AddURL(val.OriginalURL)

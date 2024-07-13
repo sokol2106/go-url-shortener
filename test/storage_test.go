@@ -25,10 +25,12 @@ func TestStorageFile(t *testing.T) {
 	t.Run("testStorageFile", func(t *testing.T) {
 		// Проверка заполнения файла
 		short, err := objectStorage.AddURL(original)
+		assert.NoError(t, err)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
 		resp, err := objectStorage.AddBatch(req, "")
+		assert.NoError(t, err)
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 
@@ -69,10 +71,12 @@ func TestStorageMemory(t *testing.T) {
 
 	t.Run("testStorageMemory", func(t *testing.T) {
 		short, err := objectStorage.AddURL(original)
+		assert.NoError(t, err)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
 		resp, err := objectStorage.AddBatch(req, "")
+		assert.NoError(t, err)
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 

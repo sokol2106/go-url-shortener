@@ -37,9 +37,7 @@ func (s *ShortURL) createRedirectURL(url string) (string, error) {
 
 func (s *ShortURL) handlerError(err error) int {
 	log.Printf("%s", err)
-
-	err2 := cerrors.ConflictError
-	if errors.Is(err, err2) {
+	if errors.Is(err, cerrors.ErrNewShortURL) {
 		return http.StatusConflict
 	}
 
