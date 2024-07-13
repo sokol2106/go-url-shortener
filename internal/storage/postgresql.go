@@ -91,6 +91,11 @@ func (pstg *Postgresql) AddURL(originalURL string) (string, error) {
 			return "", errSelect
 		}
 
+		errSelect = rows.Err()
+		if errSelect != nil {
+			return "", errSelect
+		}
+
 		if rows.Next() {
 			errScan := rows.Scan(&shortURL)
 			if errScan != nil {
