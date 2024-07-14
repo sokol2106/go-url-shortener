@@ -333,18 +333,6 @@ func TestShortURLTestify(t *testing.T) {
 func TestShortURLPostBatch(t *testing.T) {
 
 	objectStorage := storage.NewMemory()
-	// "host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable"
-	//objectStorage := storage.NewPostgresql("host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable")
-	//err := objectStorage.Connect()
-	//if err != nil {
-	//	panic(err)
-	//	}
-
-	//err = objectStorage.Migrations("file://../migrations/postgresql")
-	//if err != nil {
-	//		panic(err)
-	//	}
-
 	shrt := shorturl.New("http://localhost:8080", objectStorage)
 
 	t.Run("Test POST Batch", func(t *testing.T) {
@@ -354,9 +342,6 @@ func TestShortURLPostBatch(t *testing.T) {
 		response := httptest.NewRecorder()
 		shrt.PostBatch(response, request)
 		assert.Equal(t, http.StatusCreated, response.Code)
-
-		//res := objectStorage.GetURL("BdMzIZPj")
-		//assert.Equal(t, "https://www.ozon.ru", res)
 		shrt.Close()
 
 	})

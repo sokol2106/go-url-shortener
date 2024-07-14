@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -23,35 +24,42 @@ func TestStorageFile(t *testing.T) {
 	objectStorage := storage.NewFile(fileName)
 
 	t.Run("testStorageFile", func(t *testing.T) {
-		// Проверка заполнения файла
+		// Проверка добавление одной ссылки
 		short, err := objectStorage.AddURL(original)
 		assert.NoError(t, err)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
+		// Проверка повторного добавление ссылки
+		short2, err := objectStorage.AddURL(original)
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, short, short2)
+
+		// Проверка добавления массива ссылок
 		resp, err := objectStorage.AddBatch(req, "")
 		assert.NoError(t, err)
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
-
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
+
+		// Проверка повторного добавления массива ссылок
+		resp2, err := objectStorage.AddBatch(req, "")
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, resp, resp2)
 
 		err = objectStorage.Close()
 		require.NoError(t, err)
 
 		// Проверка загрузки из файла
 		objectStorage = storage.NewFile(fileName)
-
 		original0 = objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 = objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
-
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
 		err = objectStorage.Close()
 		require.NoError(t, err)
-
 		err = os.Remove(fileName)
 		require.NoError(t, err)
 
@@ -70,18 +78,29 @@ func TestStorageMemory(t *testing.T) {
 	original := "testOriginalURL"
 
 	t.Run("testStorageMemory", func(t *testing.T) {
+		// Проверка добавление одной ссылки
 		short, err := objectStorage.AddURL(original)
 		assert.NoError(t, err)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
+		// Проверка повторного добавление ссылки
+		short2, err := objectStorage.AddURL(original)
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, short, short2)
+
+		// Проверка добавления массива ссылок
 		resp, err := objectStorage.AddBatch(req, "")
 		assert.NoError(t, err)
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
-
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
+
+		// Проверка повторного добавления массива ссылок
+		resp2, err := objectStorage.AddBatch(req, "")
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, resp, resp2)
 
 		err = objectStorage.Close()
 		require.NoError(t, err)

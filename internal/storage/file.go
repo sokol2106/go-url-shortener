@@ -68,7 +68,7 @@ func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shor
 			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd
 			}
-
+			err = errAdd
 		}
 		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
