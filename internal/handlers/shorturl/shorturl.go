@@ -3,8 +3,10 @@ package shorturl
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"io"
@@ -19,7 +21,7 @@ func New(redirectURL string, strg StorageURL) *ShortURL {
 	return s
 }
 
-func (s *ShortURL) createRedirectURL(url string) string {
+func (s *ShortURL) createRedirectURL(url string) (string, error) {
 	// НУЖНА ЛИ ПРОВЕРКА ВХОДНОГО URL !!!
 	/*
 		err := config.CheckURL(url)
@@ -29,40 +31,155 @@ func (s *ShortURL) createRedirectURL(url string) string {
 			return ""
 		}
 	*/
-	res := s.storageURL.AddURL(url)
-	return fmt.Sprintf("%s/%s", s.redirectURL, res)
+	res, err := s.storageURL.AddURL(url)
+	return fmt.Sprintf("%s/%s", s.redirectURL, res), err
 }
 
-func (s *ShortURL) handlerError(content string, err error) {
-	log.Printf("error %s: %s", content, err)
+func (s *ShortURL) handlerError(err error) int {
+	log.Printf("%s", err)
+	if errors.Is(err, cerrors.ErrNewShortURL) {
+		return http.StatusConflict
+	}
+
+	return http.StatusBadRequest
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
+	handlerStatus := http.StatusCreated
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
-		s.handlerError("read request", err)
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	shortURL, err := s.createRedirectURL(string(body))
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(handlerStatus)
+	w.Write([]byte(shortURL))
+}
+
+func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	shortURL := s.createRedirectURL(string(body))
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(shortURL))
+	handlerStatus := http.StatusCreated
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 
 	if err != nil {
-		s.handlerError("write response", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
 	}
 
+	var (
+		reqJS RequestJSON
+		resJS ResponseJSON
+	)
+
+	err = json.Unmarshal(body, &reqJS)
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	resJS.Result, err = s.createRedirectURL(reqJS.URL)
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	resBody, err := json.Marshal(resJS)
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(handlerStatus)
+	w.Write(resBody)
+}
+
+func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
+	var (
+		requestBatch  []RequestBatch
+		responseBatch []ResponseBatch
+		resBody       bytes.Buffer
+		err           error
+	)
+
+	handlerStatus := http.StatusCreated
+
+	if err := json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	responseBatch, err = s.storageURL.AddBatch(requestBatch, s.redirectURL)
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	err = json.NewEncoder(&resBody).Encode(responseBatch)
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	bodyB, err := io.ReadAll(&resBody)
+	if err != nil {
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
+			return
+		}
+	}
+
+	defer r.Body.Close()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(handlerStatus)
+	w.Write(bodyB)
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	path := chi.URLParam(r, "id")
-	log.Printf("get get get : %s", path)
 	URL := s.storageURL.GetURL(path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
@@ -73,7 +190,6 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
-	log.Printf("get ALL ")
 	w.WriteHeader(http.StatusBadRequest)
 }
 
@@ -85,7 +201,6 @@ func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
 
 	err := s.storageURL.PingContext()
 	if err != nil {
-		s.handlerError("ping db", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -93,97 +208,16 @@ func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	body, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
-
-	if err != nil {
-		s.handlerError("read request", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	var (
-		reqJS RequestJSON
-		resJS ResponseJSON
-	)
-
-	err = json.Unmarshal(body, &reqJS)
-	if err != nil {
-		s.handlerError("unmarshal body", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	resJS.Result = s.createRedirectURL(reqJS.URL)
-	resBody, err := json.Marshal(resJS)
-	if err != nil {
-		s.handlerError("marshal body", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(resBody)
-}
-
-func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
-	var (
-		requestBatch  []RequestBatch
-		responseBatch []ResponseBatch
-		resBody       bytes.Buffer
-	)
-
-	if err := json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
-		s.handlerError("unmarshal body", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	responseBatch = s.storageURL.AddBatch(requestBatch, s.redirectURL)
-	if responseBatch != nil {
-		err := json.NewEncoder(&resBody).Encode(responseBatch)
-		if err != nil {
-			s.handlerError("marshal body", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		bodyB, err := io.ReadAll(&resBody)
-		if err != nil {
-			s.handlerError("read body", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		defer r.Body.Close()
-		w.Write(bodyB)
-	}
-
-}
-
 func (s *ShortURL) Close() error {
-
-	log.Printf("CLOSE ")
-
 	err := s.storageURL.Close()
 	if err != nil {
-		s.handlerError("close storageURL", err)
+		s.handlerError(err)
 	}
 	return err
 }
 
 func Router(sh *ShortURL) chi.Router {
 	router := chi.NewRouter()
-
-	log.Printf("REDIRECT: %s", sh.redirectURL)
 
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)

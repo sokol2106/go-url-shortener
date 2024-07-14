@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -23,33 +24,42 @@ func TestStorageFile(t *testing.T) {
 	objectStorage := storage.NewFile(fileName)
 
 	t.Run("testStorageFile", func(t *testing.T) {
-		// Проверка заполнения файла
-		short := objectStorage.AddURL(original)
+		// Проверка добавление одной ссылки
+		short, err := objectStorage.AddURL(original)
+		assert.NoError(t, err)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
-		resp := objectStorage.AddBatch(req, "")
+		// Проверка повторного добавление ссылки
+		short2, err := objectStorage.AddURL(original)
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, short, short2)
+
+		// Проверка добавления массива ссылок
+		resp, err := objectStorage.AddBatch(req, "")
+		assert.NoError(t, err)
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
-
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
-		err := objectStorage.Close()
+		// Проверка повторного добавления массива ссылок
+		resp2, err := objectStorage.AddBatch(req, "")
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, resp, resp2)
+
+		err = objectStorage.Close()
 		require.NoError(t, err)
 
 		// Проверка загрузки из файла
 		objectStorage = storage.NewFile(fileName)
-
 		original0 = objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 = objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
-
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
 		err = objectStorage.Close()
 		require.NoError(t, err)
-
 		err = os.Remove(fileName)
 		require.NoError(t, err)
 
@@ -68,49 +78,57 @@ func TestStorageMemory(t *testing.T) {
 	original := "testOriginalURL"
 
 	t.Run("testStorageMemory", func(t *testing.T) {
-		short := objectStorage.AddURL(original)
+		// Проверка добавление одной ссылки
+		short, err := objectStorage.AddURL(original)
+		assert.NoError(t, err)
 		resOriginal := objectStorage.GetURL(short)
 		assert.Equal(t, original, resOriginal)
 
-		resp := objectStorage.AddBatch(req, "")
+		// Проверка повторного добавление ссылки
+		short2, err := objectStorage.AddURL(original)
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, short, short2)
+
+		// Проверка добавления массива ссылок
+		resp, err := objectStorage.AddBatch(req, "")
+		assert.NoError(t, err)
 		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
 		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
-
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
-		err := objectStorage.Close()
+		// Проверка повторного добавления массива ссылок
+		resp2, err := objectStorage.AddBatch(req, "")
+		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
+		assert.Equal(t, resp, resp2)
+
+		err = objectStorage.Close()
 		require.NoError(t, err)
 
 	})
 }
 
 func TestStoragePostgresql(t *testing.T) {
-	/*	var strg storage.ShortDataList
-		strg.Init("")
-		db := postgresql.New("host=localhost port=5432 user=postgres password=12345678 dbname=videos sslmode=disable")
-		err := db.Connect()
-		if err != nil {
-			t.Error(err)
-			return
-		}
+	/*store := storage.NewPostgresql("host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable")
+	err := store.Connect()
+	defer store.Close()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-		//sh := shorturl.New("http://localhost:8080", strg, db)
+	t.Run("testStoragePostgresql", func(t *testing.T) {
+		sh := shorturl.New("http://localhost:8080", store)
 
-		//request := httptest.NewRequest("GET", "/", strings.NewReader("https://practicum.yandex.ru/"))
-		//response := httptest.NewRecorder()
-		//sh.GetPingDB(response, request)
+		request := httptest.NewRequest("Post", "/", strings.NewReader("https://practicum.yandex.ru/"))
+		response := httptest.NewRecorder()
+		sh.Post(response, request)
 
-		err = db.PingContext()
-		if err != nil {
-			t.Error(err)
-			return
-		}
+		result := response.Result()
+		assert.Equal(t, http.StatusCreated, result.StatusCode)
 
-		err = db.Disconnect()
-		if err != nil {
-			t.Error(err)
-		}
+	})
+
 	*/
 }
 

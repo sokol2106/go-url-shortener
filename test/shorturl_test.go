@@ -52,19 +52,7 @@ func TestShortURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			// Не получается использовать httptest.NewRequest т.к. в shorturl не могу получить id
-			// request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.url))
-			// w := httptest.NewRecorder()
-			// sh := shorturl.NewShortURL("http://localhost:8080")
-			// sh.Post(w, request)
-			// response := w.Result()
-
-			// Как я понял httptest.NewServer не взаимодействует с httptest.NewRequest,
-			// выпадает ошибка http: Request.RequestURI can't be set in client requests.
-
-			// Сейчас у меня стартует сервер httptest.NewServer(shorturl.ShortRouter("http://localhost:8080"))
-			// и я его тестирую запросами http.NewRequest
-
+			// Попробую здесь testify/suite
 			// Проверяем Post запрос
 			request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader(tt.url))
 			require.NoError(t, err)
@@ -328,23 +316,13 @@ func TestShortURLTestify(t *testing.T) {
 	// shrt.Get(response, request)
 	// assert.Equal(t, http.StatusOK, response.Code)
 
+	// Попробую здесь testify/suite
+
 }
 
 func TestShortURLPostBatch(t *testing.T) {
 
 	objectStorage := storage.NewMemory()
-	// "host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable"
-	//objectStorage := storage.NewPostgresql("host=localhost port=5432 user=postgres password=12345678 dbname=test sslmode=disable")
-	//err := objectStorage.Connect()
-	//if err != nil {
-	//	panic(err)
-	//	}
-
-	//err = objectStorage.Migrations("file://../migrations/postgresql")
-	//if err != nil {
-	//		panic(err)
-	//	}
-
 	shrt := shorturl.New("http://localhost:8080", objectStorage)
 
 	t.Run("Test POST Batch", func(t *testing.T) {
@@ -354,9 +332,6 @@ func TestShortURLPostBatch(t *testing.T) {
 		response := httptest.NewRecorder()
 		shrt.PostBatch(response, request)
 		assert.Equal(t, http.StatusCreated, response.Code)
-
-		//res := objectStorage.GetURL("BdMzIZPj")
-		//assert.Equal(t, "https://www.ozon.ru", res)
 		shrt.Close()
 
 	})
