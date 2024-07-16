@@ -43,6 +43,12 @@ func (pstg *PostgreSQL) Connect() error {
 		return err
 	}
 
+	err = pstg.PingContext()
+	if err != nil {
+		log.Println("error pinging Postgresql ", err)
+		return err
+	}
+
 	return nil
 }
 
