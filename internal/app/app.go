@@ -9,7 +9,7 @@ import (
 )
 
 type App struct {
-	Db   *storage.PostgreSQL
+	DB   *storage.PostgreSQL
 	File *storage.File
 }
 
@@ -17,7 +17,7 @@ type Option func(*App)
 
 func WithDatabase(dsn string) Option {
 	return func(a *App) {
-		a.Db = storage.NewPostgresql(dsn)
+		a.DB = storage.NewPostgresql(dsn)
 	}
 }
 
@@ -37,18 +37,19 @@ func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 		opt(app)
 	}
 
-	if err := app.Db.Connect(); err != nil {
+	if err := app.DB.Connect(); err != nil {
 		if app.File != nil {
 			handlerShort = shorturl.New(shCnf.URL(), app.File)
 		} else {
-			handlerShort = shorturl.New(shCnf.URL(), storage.NewMemory())
+			mem := storage.NewMemory()
+			handlerShort = shorturl.New(shCnf.URL(), mem)
 		}
 	} else {
-		err = app.Db.Migrations("file://migrations/postgresql")
+		err = app.DB.Migrations("file://migrations/postgresql")
 		if err != nil {
 			log.Printf("error Migrations db: %s", err)
 		}
-		handlerShort = shorturl.New(shCnf.URL(), app.Db)
+		handlerShort = shorturl.New(shCnf.URL(), app.DB)
 	}
 
 	ser := server.NewServer(shorturl.Router(handlerShort), bsCnf.Addr())
