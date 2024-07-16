@@ -11,7 +11,6 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -23,21 +22,11 @@ func New(redirectURL string, strg StorageURL) *ShortURL {
 }
 
 func (s *ShortURL) createRedirectURL(url string) (string, error) {
-	// НУЖНА ЛИ ПРОВЕРКА ВХОДНОГО URL !!!
-	/*
-		err := config.CheckURL(url)
-		if err != nil {
-			log.Printf("error CheckURL error: %s", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return ""
-		}
-	*/
 	res, err := s.storageURL.AddURL(url)
 	return fmt.Sprintf("%s/%s", s.redirectURL, res), err
 }
 
 func (s *ShortURL) handlerError(err error) int {
-	log.Printf("%s", err)
 	if errors.Is(err, cerrors.ErrNewShortURL) {
 		return http.StatusConflict
 	}
@@ -137,7 +126,7 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 
 	handlerStatus := http.StatusCreated
 
-	if err := json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)

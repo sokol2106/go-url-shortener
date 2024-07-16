@@ -8,30 +8,47 @@ import (
 	"log"
 )
 
-func Run(bsCnf *config.ConfigServer, shCnf *config.ConfigServer, fileStoragePath string, databaseDSN string) {
+type App struct {
+	Db   *storage.PostgreSQL
+	File *storage.File
+}
 
+type Option func(*App)
+
+func WithDatabase(dsn string) Option {
+	return func(a *App) {
+		a.Db = storage.NewPostgresql(dsn)
+	}
+}
+
+func WithFile(filename string) Option {
+	return func(a *App) {
+		a.File = storage.NewFile(filename)
+	}
+}
+
+func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 	var (
 		handlerShort *shorturl.ShortURL
 	)
 
-	if databaseDSN != "" {
-		db := storage.NewPostgresql(databaseDSN)
-		err := db.Connect()
-		db.Migrations("file://migrations/postgresql")
-		if err != nil {
-			log.Printf("Error connect db: %s", err)
-		}
+	app := &App{}
+	for _, opt := range opts {
+		opt(app)
+	}
 
-		handlerShort = shorturl.New(shCnf.URL(), db)
-
-	} else {
-		if fileStoragePath != "" {
-			objectStorage := storage.NewFile(fileStoragePath)
-			handlerShort = shorturl.New(shCnf.URL(), objectStorage)
+	if err := app.Db.Connect(); err != nil {
+		if app.File != nil {
+			handlerShort = shorturl.New(shCnf.URL(), app.File)
 		} else {
-			objectStorage := storage.NewMemory()
-			handlerShort = shorturl.New(shCnf.URL(), objectStorage)
+			handlerShort = shorturl.New(shCnf.URL(), storage.NewMemory())
 		}
+	} else {
+		err = app.Db.Migrations("file://migrations/postgresql")
+		if err != nil {
+			log.Printf("error Migrations db: %s", err)
+		}
+		handlerShort = shorturl.New(shCnf.URL(), app.Db)
 	}
 
 	ser := server.NewServer(shorturl.Router(handlerShort), bsCnf.Addr())
