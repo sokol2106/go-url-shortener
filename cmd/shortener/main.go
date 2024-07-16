@@ -45,6 +45,6 @@ func main() {
 		log.Printf("Creating server config base address error: %s", err.Error())
 		return
 	}
-
-	app.Run(configServer, configBase, app.WithDatabase(p.FileStoragePath), app.WithFile(p.DatabaseDSN))
+	
+	app.Run(configServer, configBase, app.WithDatabase(p.DatabaseDSN), app.WithFile(p.FileStoragePath))
 }
