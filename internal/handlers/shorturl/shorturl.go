@@ -2,6 +2,7 @@ package shorturl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -179,8 +180,10 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
 	path := chi.URLParam(r, "id")
-	URL := s.storageURL.GetURL(path)
+	URL := s.storageURL.GetURL(ctx, path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)

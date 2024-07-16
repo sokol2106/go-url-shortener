@@ -1,11 +1,13 @@
 //go:generate mockgen -destination=../../../mocks/mock_shorturl.go -package=shorturl . StorageURL
 package shorturl
 
+import "context"
+
 // Для дальнейшей модификации
 type StorageURL interface {
 	AddURL(string) (string, error)
 	AddBatch([]RequestBatch, string) ([]ResponseBatch, error)
-	GetURL(string) string
+	GetURL(context.Context, string) string
 	PingContext() error
 	Close() error
 }

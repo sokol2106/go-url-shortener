@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,33 +13,29 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"log"
 	"math/big"
+	"sync"
 )
 
 type Memory struct {
-	mapData map[string]model.ShortData
+	mapData sync.Map
 	encoder *json.Encoder
 }
 
 func NewMemory() *Memory {
-	return &Memory{
-		mapData: make(map[string]model.ShortData),
-	}
+	return &Memory{}
 }
 
-func (s *Memory) GetListShortData() map[string]model.ShortData {
-	return s.mapData
-}
-
-func (s *Memory) GetURL(shURL string) string {
-
-	log.Printf("get Memory: %s", shURL)
-
-	for _, value := range s.mapData {
-		if shURL == value.ShortURL {
-			return value.OriginalURL
+func (s *Memory) GetURL(ctx context.Context, shURL string) string {
+	original := ""
+	s.mapData.Range(func(key, value interface{}) bool {
+		mdl := value.(model.ShortData)
+		if shURL == mdl.ShortURL {
+			original = mdl.OriginalURL
+			return false
 		}
-	}
-	return ""
+		return true
+	})
+	return original
 }
 
 func (s *Memory) AddURL(originalURL string) (string, error) {
@@ -66,10 +63,13 @@ func (s *Memory) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]sh
 }
 
 func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
-	shortData, exist := s.mapData[hash]
-	if !exist {
+	var shortData model.ShortData
+	value, exist := s.mapData.Load(hash)
+	if exist {
+		shortData = value.(model.ShortData)
+	} else {
 		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
-		s.mapData[hash] = shortData
+		s.mapData.Store(hash, shortData)
 	}
 	return &shortData, exist
 }

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"os"
+	"time"
 )
 
 type File struct {
@@ -43,9 +45,11 @@ func NewFile(filename string) *File {
 }
 
 func (s *File) AddURL(originalURL string) (string, error) {
+	ctxF, cancelF := context.WithTimeout(context.Background(), 5000*time.Second)
+	defer cancelF()
 	err := cerrors.ErrNewShortURL
 	hash := GenerateHash(originalURL)
-	shortData, isNewShortData := s.getOrCreateShortData(hash, originalURL)
+	shortData, isNewShortData := s.getOrCreateShortData(ctxF, hash, originalURL)
 	if isNewShortData {
 		err = nil
 		if s.isWriteEnable {
@@ -76,16 +80,20 @@ func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shor
 	return resp, err
 }
 
-func (s *File) GetURL(shURL string) string {
-	shortData := s.find(model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
+func (s *File) GetURL(ctx context.Context, shURL string) string {
+	ctxF, cancelF := context.WithCancel(ctx)
+	defer cancelF()
+	shortData := s.find(ctxF, model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
 	if shortData == nil {
 		return ""
 	}
 	return shortData.OriginalURL
 }
 
-func (s *File) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
-	shortData := s.find(model.ShortData{UUID: hash, OriginalURL: url, ShortURL: ""})
+func (s *File) getOrCreateShortData(ctx context.Context, hash, url string) (*model.ShortData, bool) {
+	ctxF, cancelF := context.WithCancel(ctx)
+	defer cancelF()
+	shortData := s.find(ctxF, model.ShortData{UUID: hash, OriginalURL: url, ShortURL: ""})
 	isNewShortData := false
 	if shortData == nil {
 		isNewShortData = true
@@ -95,7 +103,7 @@ func (s *File) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
 	return shortData, isNewShortData
 }
 
-func (s *File) find(shortData model.ShortData) *model.ShortData {
+func (s *File) find(ctx context.Context, shortData model.ShortData) *model.ShortData {
 	newFile, _ := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	scanner := bufio.NewScanner(newFile)
 	for scanner.Scan() {

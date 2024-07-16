@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStorageFile(t *testing.T) {
@@ -25,9 +27,11 @@ func TestStorageFile(t *testing.T) {
 
 	t.Run("testStorageFile", func(t *testing.T) {
 		// Проверка добавление одной ссылки
+		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
+		defer cancel()
 		short, err := objectStorage.AddURL(original)
 		assert.NoError(t, err)
-		resOriginal := objectStorage.GetURL(short)
+		resOriginal := objectStorage.GetURL(ctx, short)
 		assert.Equal(t, original, resOriginal)
 
 		// Проверка повторного добавление ссылки
@@ -38,8 +42,8 @@ func TestStorageFile(t *testing.T) {
 		// Проверка добавления массива ссылок
 		resp, err := objectStorage.AddBatch(req, "")
 		assert.NoError(t, err)
-		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
-		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
+		original0 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
@@ -53,8 +57,8 @@ func TestStorageFile(t *testing.T) {
 
 		// Проверка загрузки из файла
 		objectStorage = storage.NewFile(fileName)
-		original0 = objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
-		original1 = objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
+		original0 = objectStorage.GetURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 = objectStorage.GetURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
@@ -79,9 +83,11 @@ func TestStorageMemory(t *testing.T) {
 
 	t.Run("testStorageMemory", func(t *testing.T) {
 		// Проверка добавление одной ссылки
+		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
+		defer cancel()
 		short, err := objectStorage.AddURL(original)
 		assert.NoError(t, err)
-		resOriginal := objectStorage.GetURL(short)
+		resOriginal := objectStorage.GetURL(ctx, short)
 		assert.Equal(t, original, resOriginal)
 
 		// Проверка повторного добавление ссылки
@@ -92,8 +98,8 @@ func TestStorageMemory(t *testing.T) {
 		// Проверка добавления массива ссылок
 		resp, err := objectStorage.AddBatch(req, "")
 		assert.NoError(t, err)
-		original0 := objectStorage.GetURL(strings.ReplaceAll(resp[0].ShortURL, "/", ""))
-		original1 := objectStorage.GetURL(strings.ReplaceAll(resp[1].ShortURL, "/", ""))
+		original0 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 

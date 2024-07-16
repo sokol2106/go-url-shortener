@@ -24,18 +24,18 @@ type DataBase interface {
 }
 */
 
-type Postgresql struct {
+type PostgreSQL struct {
 	db     *sql.DB
 	config string
 }
 
-func NewPostgresql(cnf string) *Postgresql {
-	var pstg = Postgresql{}
+func NewPostgresql(cnf string) *PostgreSQL {
+	var pstg = PostgreSQL{}
 	pstg.config = cnf
 	return &pstg
 }
 
-func (pstg *Postgresql) Connect() error {
+func (pstg *PostgreSQL) Connect() error {
 	var err error
 	pstg.db, err = sql.Open("pgx", pstg.config)
 	if err != nil {
@@ -46,25 +46,24 @@ func (pstg *Postgresql) Connect() error {
 	return nil
 }
 
-func (pstg *Postgresql) Close() error {
+func (pstg *PostgreSQL) Close() error {
 	if pstg.db != nil {
 		return pstg.db.Close()
 	}
 	return nil
 }
 
-func (pstg *Postgresql) PingContext() error {
+func (pstg *PostgreSQL) PingContext() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	return pstg.db.PingContext(ctx)
 }
 
-func (pstg *Postgresql) GetURL(shURL string) string {
-
-	log.Printf("get Postgresql: %s", shURL)
-
+func (pstg *PostgreSQL) GetURL(ctx context.Context, shURL string) string {
 	var originalURL string
-	rows := pstg.db.QueryRowContext(context.Background(), "SELECT original FROM public.shorturl WHERE short=$1", shURL)
+	ctxDB, cancelDB := context.WithCancel(ctx)
+	defer cancelDB()
+	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original FROM public.shorturl WHERE short=$1", shURL)
 	err := rows.Scan(&originalURL)
 	if err != nil {
 		log.Println("error scanning short url postgresql", err)
@@ -74,7 +73,7 @@ func (pstg *Postgresql) GetURL(shURL string) string {
 	return originalURL
 }
 
-func (pstg *Postgresql) AddURL(originalURL string) (string, error) {
+func (pstg *PostgreSQL) AddURL(originalURL string) (string, error) {
 	var err error
 
 	err = nil
@@ -108,7 +107,7 @@ func (pstg *Postgresql) AddURL(originalURL string) (string, error) {
 	return shortURL, err
 }
 
-func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+func (pstg *PostgreSQL) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
 	var err error
 	err = nil
 	resp := make([]shorturl.ResponseBatch, len(req))
@@ -125,7 +124,7 @@ func (pstg *Postgresql) AddBatch(req []shorturl.RequestBatch, redirectURL string
 	return resp, err
 }
 
-func (pstg *Postgresql) Migrations(pathFiles string) error {
+func (pstg *PostgreSQL) Migrations(pathFiles string) error {
 	driver, err := postgres.WithInstance(pstg.db, &postgres.Config{})
 	if err != nil {
 		log.Printf("error creating postgres driver: %v", err)
