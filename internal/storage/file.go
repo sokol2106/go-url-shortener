@@ -39,9 +39,10 @@ func NewFile(filename string) *File {
 		resFile.decoder = json.NewDecoder(newFile)
 		resFile.file = newFile
 		resFile.scanner = bufio.NewScanner(newFile)
+		return &resFile
 	}
 
-	return &resFile
+	return nil
 }
 
 func (s *File) AddURL(originalURL string) (string, error) {
