@@ -11,6 +11,7 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -27,11 +28,13 @@ func (s *ShortURL) createRedirectURL(url string) (string, error) {
 }
 
 func (s *ShortURL) handlerError(err error) int {
+	statusCode := http.StatusBadRequest
 	if errors.Is(err, cerrors.ErrNewShortURL) {
-		return http.StatusConflict
+		statusCode = http.StatusConflict
 	}
 
-	return http.StatusBadRequest
+	log.Printf("error handling request: %v, status: %d", err, statusCode)
+	return statusCode
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
