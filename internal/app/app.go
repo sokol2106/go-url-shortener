@@ -30,10 +30,11 @@ func WithFile(filename string) Option {
 func initStorage(db *storage.PostgreSQL, file *storage.File) shorturl.StorageURL {
 	if err := db.Connect(); err == nil {
 		err = db.Migrations("file://migrations/postgresql")
-		if err == nil {
-			return db
-		}
+		//if err == nil {
+
+		//}
 		log.Printf("error Migrations db: %s", err)
+		return db
 	}
 
 	if file != nil {
