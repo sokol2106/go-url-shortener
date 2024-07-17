@@ -27,6 +27,23 @@ func WithFile(filename string) Option {
 	}
 }
 
+func initStorage(db *storage.PostgreSQL, file *storage.File) shorturl.StorageURL {
+	if err := db.Connect(); err == nil {
+		err = db.Migrations("file://migrations/postgresql")
+		if err == nil {
+			return db
+		}
+		log.Printf("error Migrations db: %s", err)
+	}
+
+	if file != nil {
+		return file
+	} else {
+		return storage.NewMemory()
+	}
+
+}
+
 func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 	var (
 		handlerShort *shorturl.ShortURL
@@ -37,7 +54,10 @@ func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 		opt(app)
 	}
 
-	if err := app.DB.Connect(); err != nil {
+	objStorage := initStorage(app.DB, app.File)
+	handlerShort = shorturl.New(shCnf.URL(), objStorage)
+
+	/*if err := app.DB.Connect(); err != nil {
 		if app.File != nil {
 			handlerShort = shorturl.New(shCnf.URL(), app.File)
 		} else {
@@ -50,7 +70,7 @@ func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 			log.Printf("error Migrations db: %s", err)
 		}
 		handlerShort = shorturl.New(shCnf.URL(), app.DB)
-	}
+	}*/
 
 	ser := server.NewServer(shorturl.Router(handlerShort), bsCnf.Addr())
 	err := ser.Start()
