@@ -64,7 +64,6 @@ func (c *compressReader) Close() error {
 
 func СompressionResponseRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		response := w
 
 		// Write
