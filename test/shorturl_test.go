@@ -6,7 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/handlers"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,8 +28,10 @@ type strWant struct {
 
 func TestShortURL(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	sh := shorturl.New("http://localhost:8080", objectStorage)
-	server := httptest.NewServer(shorturl.Router(sh))
+	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
+	sh := handlers.NewHandlers(srvShortURL)
+	server := httptest.NewServer(handlers.Router(sh))
+
 	defer server.Close()
 
 	tests := []struct {
@@ -92,8 +95,9 @@ func TestShortURL(t *testing.T) {
 
 func TestPostJSON(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	sh := shorturl.New("http://localhost:8080", objectStorage)
-	server := httptest.NewServer(shorturl.Router(sh))
+	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
+	sh := handlers.NewHandlers(srvShortURL)
+	server := httptest.NewServer(handlers.Router(sh))
 	defer server.Close()
 
 	tests := []struct {
@@ -134,7 +138,7 @@ func TestPostJSON(t *testing.T) {
 				err = response.Body.Close()
 				require.NoError(t, err)
 
-				var respJS shorturl.ResponseJSON
+				var respJS service.ResponseJSON
 				err = json.Unmarshal(resBody, &respJS)
 				require.NoError(t, err)
 
@@ -159,8 +163,9 @@ func TestPostJSON(t *testing.T) {
 
 func TestGzipCompression(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	sh := shorturl.New("http://localhost:8080", objectStorage)
-	server := httptest.NewServer(shorturl.Router(sh))
+	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
+	sh := handlers.NewHandlers(srvShortURL)
+	server := httptest.NewServer(handlers.Router(sh))
 	defer server.Close()
 
 	tests := struct {
@@ -235,8 +240,9 @@ func TestFileReadWrite(t *testing.T) {
 	objectStorage := storage.NewFile(fileName)
 	defer objectStorage.Close()
 
-	sh := shorturl.New("http://localhost:8080", objectStorage)
-	server := httptest.NewServer(shorturl.Router(sh))
+	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
+	sh := handlers.NewHandlers(srvShortURL)
+	server := httptest.NewServer(handlers.Router(sh))
 
 	tests := []struct {
 		name     string
@@ -277,7 +283,7 @@ func TestFileReadWrite(t *testing.T) {
 				resURL := objectStorage.GetURL(context.Background(), strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)
 
-				err = sh.Close()
+				err = srvShortURL.Close()
 				require.NoError(t, err)
 
 				server.Close()
@@ -292,22 +298,23 @@ func TestFileReadWrite(t *testing.T) {
 
 func TestShortURLTestify(t *testing.T) {
 	objectStorage := storage.NewMemory()
-	shrt := shorturl.New("http://localhost:8080", objectStorage)
+	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
+	handler := handlers.NewHandlers(srvShortURL)
 
 	//  Post
 	request := httptest.NewRequest("POST", "/", strings.NewReader("https://practicum.yandex.ru/"))
 	response := httptest.NewRecorder()
-	shrt.Post(response, request)
+	handler.Post(response, request)
 	assert.Equal(t, http.StatusCreated, response.Code)
 
 	// PostJSON
 	request = httptest.NewRequest("POST", "/", strings.NewReader("{\"url\": \"https://dzen.ru\"}"))
 	request.Header.Set("Content-Type", "application/json")
-	shrt.PostJSON(response, request)
+	handler.PostJSON(response, request)
 	assert.Equal(t, http.StatusCreated, response.Code)
 	assert.Equal(t, "application/json", response.Header().Get("Content-Type"))
 
-	err := shrt.Close()
+	err := srvShortURL.Close()
 	require.NoError(t, err)
 
 	// id ни как тут не получить
@@ -322,18 +329,18 @@ func TestShortURLTestify(t *testing.T) {
 }
 
 func TestShortURLPostBatch(t *testing.T) {
-
 	objectStorage := storage.NewMemory()
-	shrt := shorturl.New("http://localhost:8080", objectStorage)
+	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
+	handler := handlers.NewHandlers(srvShortURL)
 
 	t.Run("Test POST Batch", func(t *testing.T) {
 		request := httptest.NewRequest("POST", "/", strings.NewReader(""+
 			"[{\"correlation_id\": \"1111\",\"original_url\": \"https://www.ozon.ru\"},"+
 			"{\"correlation_id\": \"2222\",\"original_url\": \"https://ya.ru\"}]"))
 		response := httptest.NewRecorder()
-		shrt.PostBatch(response, request)
+		handler.PostBatch(response, request)
 		assert.Equal(t, http.StatusCreated, response.Code)
-		shrt.Close()
+		srvShortURL.Close()
 
 	})
 }

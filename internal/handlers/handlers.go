@@ -1,33 +1,32 @@
-package shorturl
+package handlers
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
+	"github.com/sokol2106/go-url-shortener/internal/handlers/token"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"io"
 	"log"
 	"net/http"
 )
 
-func New(redirectURL string, strg StorageURL) *ShortURL {
-	s := new(ShortURL)
-	s.redirectURL = redirectURL
-	s.storageURL = strg
-	return s
+type Handlers struct {
+	srvShortURL *service.ShortURL
 }
 
-func (s *ShortURL) createRedirectURL(url string) (string, error) {
-	res, err := s.storageURL.AddURL(url)
-	return fmt.Sprintf("%s/%s", s.redirectURL, res), err
+func NewHandlers(srv *service.ShortURL) *Handlers {
+	return &Handlers{
+		srvShortURL: srv,
+	}
 }
 
-func (s *ShortURL) handlerError(err error) int {
+func (s *Handlers) handlerError(err error) int {
 	statusCode := http.StatusBadRequest
 	if errors.Is(err, cerrors.ErrNewShortURL) {
 		statusCode = http.StatusConflict
@@ -37,7 +36,7 @@ func (s *ShortURL) handlerError(err error) int {
 	return statusCode
 }
 
-func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
+func (s *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	handlerStatus := http.StatusCreated
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -50,7 +49,7 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	shortURL, err := s.createRedirectURL(string(body))
+	shortURL, err := s.srvShortURL.AddURL(string(body))
 	if err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
@@ -64,7 +63,7 @@ func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(shortURL))
 }
 
-func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
+func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -83,8 +82,8 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		reqJS RequestJSON
-		resJS ResponseJSON
+		reqJS service.RequestJSON
+		resJS service.ResponseJSON
 	)
 
 	err = json.Unmarshal(body, &reqJS)
@@ -96,7 +95,7 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resJS.Result, err = s.createRedirectURL(reqJS.URL)
+	resJS.Result, err = s.srvShortURL.AddURL(reqJS.URL)
 	if err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
@@ -119,10 +118,10 @@ func (s *ShortURL) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
-func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
+func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 	var (
-		requestBatch  []RequestBatch
-		responseBatch []ResponseBatch
+		requestBatch  []service.RequestBatch
+		responseBatch []service.ResponseBatch
 		resBody       bytes.Buffer
 		err           error
 	)
@@ -137,7 +136,7 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	responseBatch, err = s.storageURL.AddBatch(requestBatch, s.redirectURL)
+	responseBatch, err = s.srvShortURL.AddBatch(requestBatch)
 	if err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
@@ -171,11 +170,11 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 	w.Write(bodyB)
 }
 
-func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
+func (s *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	path := chi.URLParam(r, "id")
-	URL := s.storageURL.GetURL(ctx, path)
+	URL := s.srvShortURL.GetURL(ctx, path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -184,39 +183,30 @@ func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (s *ShortURL) GetAll(w http.ResponseWriter, r *http.Request) {
+func (s *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (s *ShortURL) GetPing(w http.ResponseWriter, r *http.Request) {
-	if s.storageURL == nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	err := s.storageURL.PingContext()
+func (s *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
+	err := s.srvShortURL.PingContext()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *ShortURL) Close() error {
-	err := s.storageURL.Close()
-	if err != nil {
-		s.handlerError(err)
-	}
-	return err
+func (s *Handlers) GetUserURL(w http.ResponseWriter, r *http.Request) {
+
 }
 
-func Router(sh *ShortURL) chi.Router {
+func Router(sh *Handlers) chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)
 	router.Use(logger.LoggingResponseRequest)
+	router.Use(token.TokenResponseRequest)
 
 	// router
 	router.Post("/", http.HandlerFunc(sh.Post))
@@ -225,6 +215,7 @@ func Router(sh *ShortURL) chi.Router {
 	router.Get("/{id}", http.HandlerFunc(sh.Get))
 	router.Get("/*", http.HandlerFunc(sh.GetAll))
 	router.Get("/ping", http.HandlerFunc(sh.GetPing))
+	router.Get("/api/user/urls", http.HandlerFunc(sh.GetUserURL))
 
 	return router
 }

@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"os"
 	"time"
 )
@@ -64,9 +64,9 @@ func (s *File) AddURL(originalURL string) (string, error) {
 	return shortData.ShortURL, err
 }
 
-func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+func (s *File) AddBatch(req []service.RequestBatch, redirectURL string) ([]service.ResponseBatch, error) {
 	var err error = nil
-	resp := make([]shorturl.ResponseBatch, len(req))
+	resp := make([]service.ResponseBatch, len(req))
 	for i, val := range req {
 		sh, errAdd := s.AddURL(val.OriginalURL)
 		if errAdd != nil {
@@ -75,7 +75,7 @@ func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shor
 			}
 			err = errAdd
 		}
-		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
+		resp[i] = service.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 
 	return resp, err

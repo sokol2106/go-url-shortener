@@ -3,7 +3,7 @@ package test
 import (
 	"context"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,11 +15,11 @@ import (
 
 func TestStorageFile(t *testing.T) {
 	var (
-		req []shorturl.RequestBatch
+		req []service.RequestBatch
 	)
 
-	req = append(req, shorturl.RequestBatch{CorrelationID: "0", OriginalURL: "testOriginalURL0"})
-	req = append(req, shorturl.RequestBatch{CorrelationID: "1", OriginalURL: "testOriginalURL1"})
+	req = append(req, service.RequestBatch{CorrelationID: "0", OriginalURL: "testOriginalURL0"})
+	req = append(req, service.RequestBatch{CorrelationID: "1", OriginalURL: "testOriginalURL1"})
 	original := "testOriginalURL"
 
 	fileName := "testStorage.json"
@@ -72,11 +72,11 @@ func TestStorageFile(t *testing.T) {
 
 func TestStorageMemory(t *testing.T) {
 	var (
-		req []shorturl.RequestBatch
+		req []service.RequestBatch
 	)
 
-	req = append(req, shorturl.RequestBatch{CorrelationID: "0", OriginalURL: "testOriginalURL0"})
-	req = append(req, shorturl.RequestBatch{CorrelationID: "1", OriginalURL: "testOriginalURL1"})
+	req = append(req, service.RequestBatch{CorrelationID: "0", OriginalURL: "testOriginalURL0"})
+	req = append(req, service.RequestBatch{CorrelationID: "1", OriginalURL: "testOriginalURL1"})
 
 	objectStorage := storage.NewMemory()
 	original := "testOriginalURL"

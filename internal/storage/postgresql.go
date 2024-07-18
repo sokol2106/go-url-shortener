@@ -11,7 +11,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"log"
 	"time"
 )
@@ -113,10 +113,10 @@ func (pstg *PostgreSQL) AddURL(originalURL string) (string, error) {
 	return shortURL, err
 }
 
-func (pstg *PostgreSQL) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+func (pstg *PostgreSQL) AddBatch(req []service.RequestBatch, redirectURL string) ([]service.ResponseBatch, error) {
 	var err error
 	err = nil
-	resp := make([]shorturl.ResponseBatch, len(req))
+	resp := make([]service.ResponseBatch, len(req))
 	for i, val := range req {
 		sh, errAdd := pstg.AddURL(val.OriginalURL)
 		if errAdd != nil {
@@ -125,7 +125,7 @@ func (pstg *PostgreSQL) AddBatch(req []shorturl.RequestBatch, redirectURL string
 			}
 			err = errAdd
 		}
-		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
+		resp[i] = service.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 	return resp, err
 }

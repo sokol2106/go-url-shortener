@@ -3,6 +3,7 @@ package token
 import (
 	"errors"
 	"github.com/golang-jwt/jwt/v4"
+	"net/http"
 	"time"
 )
 
@@ -46,4 +47,20 @@ func ReadToken(tknStrin string) (int, error) {
 	}
 
 	return token.UserID, nil
+}
+
+func TokenResponseRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		/*token, err := r.Cookie("user")
+		if err != nil {
+			log.Printf("error handling request: %v, status: %d", err, http.StatusUnauthorized)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		*/
+
+		handler.ServeHTTP(w, r)
+
+	})
+
 }
