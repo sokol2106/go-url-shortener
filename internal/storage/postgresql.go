@@ -85,11 +85,10 @@ func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, erro
 	err = nil
 	hash := GenerateHash(originalURL)
 	shortURL := RandText(8)
-	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid) VALUES ($1, $2, $3, $4)",
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original) VALUES ($1, $2, $3)",
 		hash,
 		shortURL,
-		originalURL,
-		userID)
+		originalURL)
 
 	if errInser != nil {
 		rows, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
