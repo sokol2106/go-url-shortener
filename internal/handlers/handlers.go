@@ -214,7 +214,7 @@ func (s *Handlers) GetUserURL(w http.ResponseWriter, r *http.Request) {
 
 func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("user")
+		/*cookie, err := r.Cookie("user")
 		// Ошибка по куке
 		if err != nil {
 			s.handlerError(err)
@@ -241,7 +241,7 @@ func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 				return
 			}
 			http.SetCookie(w, cookie)
-		}
+		}*/
 
 		handler.ServeHTTP(w, r)
 	})
