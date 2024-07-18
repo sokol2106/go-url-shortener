@@ -2,6 +2,7 @@ package shorturl
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,26 +23,18 @@ func New(redirectURL string, strg StorageURL) *ShortURL {
 }
 
 func (s *ShortURL) createRedirectURL(url string) (string, error) {
-	// НУЖНА ЛИ ПРОВЕРКА ВХОДНОГО URL !!!
-	/*
-		err := config.CheckURL(url)
-		if err != nil {
-			log.Printf("error CheckURL error: %s", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return ""
-		}
-	*/
 	res, err := s.storageURL.AddURL(url)
 	return fmt.Sprintf("%s/%s", s.redirectURL, res), err
 }
 
 func (s *ShortURL) handlerError(err error) int {
-	log.Printf("%s", err)
+	statusCode := http.StatusBadRequest
 	if errors.Is(err, cerrors.ErrNewShortURL) {
-		return http.StatusConflict
+		statusCode = http.StatusConflict
 	}
 
-	return http.StatusBadRequest
+	log.Printf("error handling request: %v, status: %d", err, statusCode)
+	return statusCode
 }
 
 func (s *ShortURL) Post(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +129,7 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 
 	handlerStatus := http.StatusCreated
 
-	if err := json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
@@ -179,8 +172,10 @@ func (s *ShortURL) PostBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *ShortURL) Get(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
 	path := chi.URLParam(r, "id")
-	URL := s.storageURL.GetURL(path)
+	URL := s.storageURL.GetURL(ctx, path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)

@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
@@ -273,7 +274,7 @@ func TestFileReadWrite(t *testing.T) {
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
-				resURL := objectStorage.GetURL(strings.ReplaceAll(urlParse.Path, "/", ""))
+				resURL := objectStorage.GetURL(context.Background(), strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)
 
 				err = sh.Close()
