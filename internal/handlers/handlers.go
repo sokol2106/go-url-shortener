@@ -51,8 +51,9 @@ func (s *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		if s.handlerError(err) == http.StatusBadRequest {
-			w.WriteHeader(http.StatusBadRequest)
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
 			return
 		}
 	}
@@ -61,8 +62,9 @@ func (s *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	shortURL, err := s.srvShortURL.AddURL(string(body), user)
 
 	if err != nil {
-		if s.handlerError(err) == http.StatusBadRequest {
-			w.WriteHeader(http.StatusBadRequest)
+		handlerStatus = s.handlerError(err)
+		if handlerStatus == http.StatusBadRequest {
+			w.WriteHeader(handlerStatus)
 			return
 		}
 	}
@@ -263,7 +265,7 @@ func Router(handler *Handlers) chi.Router {
 	router.Get("/{id}", http.HandlerFunc(handler.Get))
 	router.Get("/*", http.HandlerFunc(handler.GetAll))
 	router.Get("/ping", http.HandlerFunc(handler.GetPing))
-	router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserURL))
+	//router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserURL))
 
 	return router
 }
