@@ -80,7 +80,7 @@ func TestShortURL(t *testing.T) {
 				// Проверяем Get запрос
 
 				request, err = http.NewRequest(http.MethodGet, server.URL+urlParse.Path, nil)
-				request.AddCookie(response.Cookies()[0])
+				//request.AddCookie(response.Cookies()[0])
 				require.NoError(t, err)
 				response, err = server.Client().Do(request)
 				require.NoError(t, err)

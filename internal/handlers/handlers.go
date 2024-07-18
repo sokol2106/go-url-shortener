@@ -254,7 +254,7 @@ func Router(handler *Handlers) chi.Router {
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)
 	router.Use(logger.LoggingResponseRequest)
-	router.Use(handler.TokenResponseRequest)
+	//router.Use(handler.TokenResponseRequest)
 
 	// router
 	router.Post("/", http.HandlerFunc(handler.Post))
