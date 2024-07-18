@@ -80,6 +80,7 @@ func TestShortURL(t *testing.T) {
 				// Проверяем Get запрос
 
 				request, err = http.NewRequest(http.MethodGet, server.URL+urlParse.Path, nil)
+				request.AddCookie(response.Cookies()[0])
 				require.NoError(t, err)
 				response, err = server.Client().Do(request)
 				require.NoError(t, err)
@@ -138,7 +139,7 @@ func TestPostJSON(t *testing.T) {
 				err = response.Body.Close()
 				require.NoError(t, err)
 
-				var respJS service.ResponseJSON
+				var respJS handlers.ResponseJSON
 				err = json.Unmarshal(resBody, &respJS)
 				require.NoError(t, err)
 
@@ -280,7 +281,7 @@ func TestFileReadWrite(t *testing.T) {
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
-				resURL := objectStorage.GetURL(context.Background(), strings.ReplaceAll(urlParse.Path, "/", ""))
+				resURL := objectStorage.GetOriginalURL(context.Background(), strings.ReplaceAll(urlParse.Path, "/", ""))
 				assert.Equal(t, tt.url, resURL)
 
 				err = srvShortURL.Close()

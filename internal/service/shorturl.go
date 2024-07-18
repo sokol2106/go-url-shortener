@@ -7,9 +7,9 @@ import (
 )
 
 type StorageURL interface {
-	AddURL(string) (string, error)
-	AddBatch([]RequestBatch, string) ([]ResponseBatch, error)
-	GetURL(context.Context, string) string
+	AddOriginalURL(string, string) (string, error)
+	AddOriginalURLBatch([]RequestBatch, string, string) ([]ResponseBatch, error)
+	GetOriginalURL(context.Context, string) string
 	PingContext() error
 	Close() error
 }
@@ -17,14 +17,6 @@ type StorageURL interface {
 type ShortURL struct {
 	RedirectURL string
 	storageURL  StorageURL
-}
-
-type RequestJSON struct {
-	URL string `json:"url"`
-}
-
-type ResponseJSON struct {
-	Result string `json:"result"`
 }
 
 type RequestBatch struct {
@@ -44,17 +36,17 @@ func NewShortURL(redirectURL string, strg StorageURL) *ShortURL {
 	return s
 }
 
-func (s *ShortURL) AddURL(url string) (string, error) {
-	res, err := s.storageURL.AddURL(url)
+func (s *ShortURL) AddURL(url, userID string) (string, error) {
+	res, err := s.storageURL.AddOriginalURL(url, userID)
 	return fmt.Sprintf("%s/%s", s.RedirectURL, res), err
 }
 
-func (s *ShortURL) AddBatch(batch []RequestBatch) ([]ResponseBatch, error) {
-	return s.storageURL.AddBatch(batch, s.RedirectURL)
+func (s *ShortURL) AddBatch(batch []RequestBatch, userID string) ([]ResponseBatch, error) {
+	return s.storageURL.AddOriginalURLBatch(batch, s.RedirectURL, userID)
 }
 
 func (s *ShortURL) GetURL(ctx context.Context, url string) string {
-	return s.storageURL.GetURL(ctx, url)
+	return s.storageURL.GetOriginalURL(ctx, url)
 }
 
 func (s *ShortURL) PingContext() error {

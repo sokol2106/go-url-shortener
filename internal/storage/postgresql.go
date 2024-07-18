@@ -65,7 +65,7 @@ func (pstg *PostgreSQL) PingContext() error {
 	return pstg.db.PingContext(ctx)
 }
 
-func (pstg *PostgreSQL) GetURL(ctx context.Context, shURL string) string {
+func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) string {
 	var originalURL string
 	ctxDB, cancelDB := context.WithCancel(ctx)
 	defer cancelDB()
@@ -79,16 +79,17 @@ func (pstg *PostgreSQL) GetURL(ctx context.Context, shURL string) string {
 	return originalURL
 }
 
-func (pstg *PostgreSQL) AddURL(originalURL string) (string, error) {
+func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, error) {
 	var err error
 
 	err = nil
 	hash := GenerateHash(originalURL)
 	shortURL := RandText(8)
-	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original) VALUES ($1 ,$2 ,$3 )",
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid) VALUES ($1, $2, $3, $4)",
 		hash,
 		shortURL,
-		originalURL)
+		originalURL,
+		userID)
 
 	if errInser != nil {
 		rows, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
@@ -113,12 +114,12 @@ func (pstg *PostgreSQL) AddURL(originalURL string) (string, error) {
 	return shortURL, err
 }
 
-func (pstg *PostgreSQL) AddBatch(req []service.RequestBatch, redirectURL string) ([]service.ResponseBatch, error) {
+func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirectURL, userID string) ([]service.ResponseBatch, error) {
 	var err error
 	err = nil
 	resp := make([]service.ResponseBatch, len(req))
 	for i, val := range req {
-		sh, errAdd := pstg.AddURL(val.OriginalURL)
+		sh, errAdd := pstg.AddOriginalURL(val.OriginalURL, userID)
 		if errAdd != nil {
 			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd

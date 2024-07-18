@@ -25,7 +25,31 @@ func NewMemory() *Memory {
 	return &Memory{}
 }
 
-func (s *Memory) GetURL(ctx context.Context, shURL string) string {
+func (s *Memory) AddOriginalURL(originalURL, userID string) (string, error) {
+	var err error = nil
+	hash := GenerateHash(originalURL)
+	shortData, exist := s.getOrCreateShortData(hash, originalURL, userID)
+	if exist {
+		err = cerrors.ErrNewShortURL
+	}
+	return shortData.ShortURL, err
+}
+
+func (s *Memory) AddOriginalURLBatch(req []service.RequestBatch, redirectURL string, userID string) ([]service.ResponseBatch, error) {
+	var err error = nil
+	resp := make([]service.ResponseBatch, len(req))
+	for i, val := range req {
+		sh, addErr := s.AddOriginalURL(val.OriginalURL, userID)
+		if addErr != nil {
+			err = addErr
+		}
+		resp[i] = service.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
+	}
+
+	return resp, err
+}
+
+func (s *Memory) GetOriginalURL(ctx context.Context, shURL string) string {
 	original := ""
 	s.mapData.Range(func(key, value interface{}) bool {
 		mdl := value.(model.ShortData)
@@ -38,37 +62,13 @@ func (s *Memory) GetURL(ctx context.Context, shURL string) string {
 	return original
 }
 
-func (s *Memory) AddURL(originalURL string) (string, error) {
-	var err error = nil
-	hash := GenerateHash(originalURL)
-	shortData, exist := s.getOrCreateShortData(hash, originalURL)
-	if exist {
-		err = cerrors.ErrNewShortURL
-	}
-	return shortData.ShortURL, err
-}
-
-func (s *Memory) AddBatch(req []service.RequestBatch, redirectURL string) ([]service.ResponseBatch, error) {
-	var err error = nil
-	resp := make([]service.ResponseBatch, len(req))
-	for i, val := range req {
-		sh, addErr := s.AddURL(val.OriginalURL)
-		if addErr != nil {
-			err = addErr
-		}
-		resp[i] = service.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
-	}
-
-	return resp, err
-}
-
-func (s *Memory) getOrCreateShortData(hash, url string) (*model.ShortData, bool) {
+func (s *Memory) getOrCreateShortData(hash, url, userID string) (*model.ShortData, bool) {
 	var shortData model.ShortData
 	value, exist := s.mapData.Load(hash)
 	if exist {
 		shortData = value.(model.ShortData)
 	} else {
-		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
+		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
 		s.mapData.Store(hash, shortData)
 	}
 	return &shortData, exist

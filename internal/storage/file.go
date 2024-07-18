@@ -45,12 +45,12 @@ func NewFile(filename string) *File {
 	return nil
 }
 
-func (s *File) AddURL(originalURL string) (string, error) {
+func (s *File) AddOriginalURL(originalURL, userID string) (string, error) {
 	ctxF, cancelF := context.WithTimeout(context.Background(), 5000*time.Second)
 	defer cancelF()
 	err := cerrors.ErrNewShortURL
 	hash := GenerateHash(originalURL)
-	shortData, isNewShortData := s.getOrCreateShortData(ctxF, hash, originalURL)
+	shortData, isNewShortData := s.getOrCreateShortData(ctxF, hash, originalURL, userID)
 	if isNewShortData {
 		err = nil
 		if s.isWriteEnable {
@@ -64,11 +64,11 @@ func (s *File) AddURL(originalURL string) (string, error) {
 	return shortData.ShortURL, err
 }
 
-func (s *File) AddBatch(req []service.RequestBatch, redirectURL string) ([]service.ResponseBatch, error) {
+func (s *File) AddOriginalURLBatch(req []service.RequestBatch, redirectURL string, userID string) ([]service.ResponseBatch, error) {
 	var err error = nil
 	resp := make([]service.ResponseBatch, len(req))
 	for i, val := range req {
-		sh, errAdd := s.AddURL(val.OriginalURL)
+		sh, errAdd := s.AddOriginalURL(val.OriginalURL, userID)
 		if errAdd != nil {
 			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd
@@ -81,7 +81,7 @@ func (s *File) AddBatch(req []service.RequestBatch, redirectURL string) ([]servi
 	return resp, err
 }
 
-func (s *File) GetURL(ctx context.Context, shURL string) string {
+func (s *File) GetOriginalURL(ctx context.Context, shURL string) string {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
 	shortData := s.find(ctxF, model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
@@ -91,14 +91,14 @@ func (s *File) GetURL(ctx context.Context, shURL string) string {
 	return shortData.OriginalURL
 }
 
-func (s *File) getOrCreateShortData(ctx context.Context, hash, url string) (*model.ShortData, bool) {
+func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID string) (*model.ShortData, bool) {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
 	shortData := s.find(ctxF, model.ShortData{UUID: hash, OriginalURL: url, ShortURL: ""})
 	isNewShortData := false
 	if shortData == nil {
 		isNewShortData = true
-		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
+		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
 	}
 
 	return shortData, isNewShortData

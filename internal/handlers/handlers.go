@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/gzip"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/token"
 	"github.com/sokol2106/go-url-shortener/internal/logger"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"io"
@@ -18,11 +17,21 @@ import (
 
 type Handlers struct {
 	srvShortURL *service.ShortURL
+	srvAuth     *service.Authorization
+}
+
+type RequestJSON struct {
+	URL string `json:"url"`
+}
+
+type ResponseJSON struct {
+	Result string `json:"result"`
 }
 
 func NewHandlers(srv *service.ShortURL) *Handlers {
 	return &Handlers{
 		srvShortURL: srv,
+		srvAuth:     service.NewAuthorization(),
 	}
 }
 
@@ -42,18 +51,18 @@ func (s *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		handlerStatus = s.handlerError(err)
-		if handlerStatus == http.StatusBadRequest {
-			w.WriteHeader(handlerStatus)
+		if s.handlerError(err) == http.StatusBadRequest {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	}
 
-	shortURL, err := s.srvShortURL.AddURL(string(body))
+	user := "123456"
+	shortURL, err := s.srvShortURL.AddURL(string(body), user)
+
 	if err != nil {
-		handlerStatus = s.handlerError(err)
-		if handlerStatus == http.StatusBadRequest {
-			w.WriteHeader(handlerStatus)
+		if s.handlerError(err) == http.StatusBadRequest {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	}
@@ -82,8 +91,8 @@ func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		reqJS service.RequestJSON
-		resJS service.ResponseJSON
+		reqJS RequestJSON
+		resJS ResponseJSON
 	)
 
 	err = json.Unmarshal(body, &reqJS)
@@ -95,7 +104,9 @@ func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resJS.Result, err = s.srvShortURL.AddURL(reqJS.URL)
+	user := "123456"
+	resJS.Result, err = s.srvShortURL.AddURL(reqJS.URL, user)
+
 	if err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
@@ -136,7 +147,8 @@ func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	responseBatch, err = s.srvShortURL.AddBatch(requestBatch)
+	userID := "123456"
+	responseBatch, err = s.srvShortURL.AddBatch(requestBatch, userID)
 	if err != nil {
 		handlerStatus = s.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
@@ -200,22 +212,58 @@ func (s *Handlers) GetUserURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func Router(sh *Handlers) chi.Router {
+func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("user")
+		// Ошибка по куке
+		if err != nil {
+			s.handlerError(err)
+			tkn, err := s.srvAuth.NewUserToken()
+			if err != nil {
+				s.handlerError(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			newCookie := http.Cookie{Name: "user", Value: tkn}
+			http.SetCookie(w, &newCookie)
+		} else {
+			// Без ошибок
+			isUser, err := s.srvAuth.IsUser(cookie.Value)
+			if err != nil {
+				s.handlerError(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			if !isUser {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			http.SetCookie(w, cookie)
+		}
+
+		handler.ServeHTTP(w, r)
+	})
+
+}
+
+func Router(handler *Handlers) chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
 	router.Use(gzip.СompressionResponseRequest)
 	router.Use(logger.LoggingResponseRequest)
-	router.Use(token.TokenResponseRequest)
+	router.Use(handler.TokenResponseRequest)
 
 	// router
-	router.Post("/", http.HandlerFunc(sh.Post))
-	router.Post("/api/shorten", http.HandlerFunc(sh.PostJSON))
-	router.Post("/api/shorten/batch", http.HandlerFunc(sh.PostBatch))
-	router.Get("/{id}", http.HandlerFunc(sh.Get))
-	router.Get("/*", http.HandlerFunc(sh.GetAll))
-	router.Get("/ping", http.HandlerFunc(sh.GetPing))
-	router.Get("/api/user/urls", http.HandlerFunc(sh.GetUserURL))
+	router.Post("/", http.HandlerFunc(handler.Post))
+	router.Post("/api/shorten", http.HandlerFunc(handler.PostJSON))
+	router.Post("/api/shorten/batch", http.HandlerFunc(handler.PostBatch))
+	router.Get("/{id}", http.HandlerFunc(handler.Get))
+	router.Get("/*", http.HandlerFunc(handler.GetAll))
+	router.Get("/ping", http.HandlerFunc(handler.GetPing))
+	router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserURL))
 
 	return router
 }

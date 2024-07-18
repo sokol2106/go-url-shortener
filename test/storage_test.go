@@ -29,26 +29,26 @@ func TestStorageFile(t *testing.T) {
 		// Проверка добавление одной ссылки
 		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
 		defer cancel()
-		short, err := objectStorage.AddURL(original)
+		short, err := objectStorage.AddOriginalURL(original, "12345")
 		assert.NoError(t, err)
-		resOriginal := objectStorage.GetURL(ctx, short)
+		resOriginal := objectStorage.GetOriginalURL(ctx, short)
 		assert.Equal(t, original, resOriginal)
 
 		// Проверка повторного добавление ссылки
-		short2, err := objectStorage.AddURL(original)
+		short2, err := objectStorage.AddOriginalURL(original, "12345")
 		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
 		assert.Equal(t, short, short2)
 
 		// Проверка добавления массива ссылок
-		resp, err := objectStorage.AddBatch(req, "")
+		resp, err := objectStorage.AddOriginalURLBatch(req, "", "12345")
 		assert.NoError(t, err)
-		original0 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
-		original1 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
+		original0 := objectStorage.GetOriginalURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 := objectStorage.GetOriginalURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
 		// Проверка повторного добавления массива ссылок
-		resp2, err := objectStorage.AddBatch(req, "")
+		resp2, err := objectStorage.AddOriginalURLBatch(req, "", "12345")
 		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
 		assert.Equal(t, resp, resp2)
 
@@ -57,8 +57,8 @@ func TestStorageFile(t *testing.T) {
 
 		// Проверка загрузки из файла
 		objectStorage = storage.NewFile(fileName)
-		original0 = objectStorage.GetURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
-		original1 = objectStorage.GetURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
+		original0 = objectStorage.GetOriginalURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 = objectStorage.GetOriginalURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
@@ -85,26 +85,26 @@ func TestStorageMemory(t *testing.T) {
 		// Проверка добавление одной ссылки
 		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
 		defer cancel()
-		short, err := objectStorage.AddURL(original)
+		short, err := objectStorage.AddOriginalURL(original, "123456")
 		assert.NoError(t, err)
-		resOriginal := objectStorage.GetURL(ctx, short)
+		resOriginal := objectStorage.GetOriginalURL(ctx, short)
 		assert.Equal(t, original, resOriginal)
 
 		// Проверка повторного добавление ссылки
-		short2, err := objectStorage.AddURL(original)
+		short2, err := objectStorage.AddOriginalURL(original, "123456")
 		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
 		assert.Equal(t, short, short2)
 
 		// Проверка добавления массива ссылок
-		resp, err := objectStorage.AddBatch(req, "")
+		resp, err := objectStorage.AddOriginalURLBatch(req, "", "123456")
 		assert.NoError(t, err)
-		original0 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
-		original1 := objectStorage.GetURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
+		original0 := objectStorage.GetOriginalURL(ctx, strings.ReplaceAll(resp[0].ShortURL, "/", ""))
+		original1 := objectStorage.GetOriginalURL(ctx, strings.ReplaceAll(resp[1].ShortURL, "/", ""))
 		assert.Equal(t, req[0].OriginalURL, original0)
 		assert.Equal(t, req[1].OriginalURL, original1)
 
 		// Проверка повторного добавления массива ссылок
-		resp2, err := objectStorage.AddBatch(req, "")
+		resp2, err := objectStorage.AddOriginalURLBatch(req, "", "123456")
 		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
 		assert.Equal(t, resp, resp2)
 
