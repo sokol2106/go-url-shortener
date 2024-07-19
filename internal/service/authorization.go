@@ -11,7 +11,7 @@ import (
 
 type Authorization struct {
 	users         sync.Map
-	currentUserId string
+	currentUserID string
 }
 
 func NewAuthorization() *Authorization {
@@ -28,7 +28,7 @@ func (ath *Authorization) NewUserToken() (string, error) {
 	ath.users.Store(userID.String(), user)
 	token, err := NewToken(userID.String())
 
-	ath.currentUserId = userID.String()
+	ath.currentUserID = userID.String()
 	return token, err
 }
 
@@ -47,11 +47,11 @@ func (ath *Authorization) GetUserID(token string) (string, error) {
 }
 
 func (ath *Authorization) SetCurrentUserID(userID string) {
-	ath.currentUserId = userID
+	ath.currentUserID = userID
 }
 
 func (ath *Authorization) GetCurrentUserID() string {
-	return ath.currentUserId
+	return ath.currentUserID
 }
 
 const tokenEXP = time.Hour * 3
