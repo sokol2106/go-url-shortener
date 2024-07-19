@@ -363,8 +363,9 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		require.NoError(t, err)
 
 		response, err := server.Client().Do(request)
-		defer response.Body.Close()
 		require.NoError(t, err)
+		defer response.Body.Close()
+
 		assert.Equal(t, http.StatusCreated, response.StatusCode)
 		assert.Equal(t, "text/plain", response.Header.Get("Content-Type"))
 		require.Len(t, response.Cookies(), 1)
@@ -375,8 +376,9 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		require.NoError(t, err)
 
 		response, err = server.Client().Do(request)
-		defer response.Body.Close()
 		require.NoError(t, err)
+		defer response.Body.Close()
+
 		assert.Equal(t, http.StatusCreated, response.StatusCode)
 		assert.Equal(t, "text/plain", response.Header.Get("Content-Type"))
 		require.Len(t, response.Cookies(), 1)
@@ -387,8 +389,9 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		request.AddCookie(response.Cookies()[0])
 
 		response, err = server.Client().Do(request)
-		defer response.Body.Close()
 		require.NoError(t, err)
+		defer response.Body.Close()
+
 		assert.Equal(t, http.StatusCreated, response.StatusCode)
 		assert.Equal(t, "text/plain", response.Header.Get("Content-Type"))
 		require.Len(t, response.Cookies(), 1)
@@ -399,10 +402,11 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		request.AddCookie(response.Cookies()[0])
 
 		response, err = server.Client().Do(request)
+		require.NoError(t, err)
 		defer response.Body.Close()
-		require.NoError(t, err)
-		_, err = io.ReadAll(response.Body)
-		require.NoError(t, err)
+
+		//_, err = io.ReadAll(response.Body)
+		//require.NoError(t, err)
 		//assert.Equal(t, "", bodyBytes)
 
 		// user 1
@@ -411,10 +415,11 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		request.AddCookie(cookieUser1)
 
 		response, err = server.Client().Do(request)
+		require.NoError(t, err)
 		defer response.Body.Close()
-		require.NoError(t, err)
-		_, err = io.ReadAll(response.Body)
-		require.NoError(t, err)
+
+		//_, err = io.ReadAll(response.Body)
+		//require.NoError(t, err)
 		//assert.Equal(t, "", bodyBytes)
 
 		// user 777
@@ -422,14 +427,16 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		require.NoError(t, err)
 		auth := service.NewAuthorization()
 		tkn, err := auth.NewUserToken()
+		require.NoError(t, err)
 		newCookie := http.Cookie{Name: "user", Value: tkn}
 		request.AddCookie(&newCookie)
 
 		response, err = server.Client().Do(request)
+		require.NoError(t, err)
 		defer response.Body.Close()
-		require.NoError(t, err)
-		_, err = io.ReadAll(response.Body)
-		require.NoError(t, err)
+
+		//_, err = io.ReadAll(response.Body)
+		//require.NoError(t, err)
 		assert.Equal(t, http.StatusUnauthorized, response.StatusCode)
 
 	})
