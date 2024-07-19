@@ -19,7 +19,7 @@ func NewAuthorization() *Authorization {
 }
 
 func (ath *Authorization) NewUserToken() (string, error) {
-	userID, err := rand.Int(rand.Reader, big.NewInt(15))
+	userID, err := rand.Int(rand.Reader, big.NewInt(30000))
 	user := "user1"
 	if err != nil {
 		return "", err
