@@ -227,15 +227,15 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 	w.Write(res)
 }
 
-func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
+func (h *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("user")
 		// Ошибка по куке
 		if err != nil {
-			s.handlerError(err)
-			tkn, err := s.srvAuthorization.NewUserToken()
+			h.handlerError(err)
+			tkn, err := h.srvAuthorization.NewUserToken()
 			if err != nil {
-				s.handlerError(err)
+				h.handlerError(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -244,20 +244,20 @@ func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 			http.SetCookie(w, &newCookie)
 		} else {
 			// Без ошибок
-			userID, err := s.srvAuthorization.GetUserID(cookie.Value)
+			userID, err := h.srvAuthorization.GetUserID(cookie.Value)
 			if err != nil {
-				s.handlerError(err)
+				h.handlerError(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			isUser := s.srvAuthorization.IsUser(userID)
+			isUser := h.srvAuthorization.IsUser(userID)
 			if !isUser {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
-			s.srvAuthorization.SetCurrentUserID(userID)
+			h.srvAuthorization.SetCurrentUserID(userID)
 			http.SetCookie(w, cookie)
 		}
 
