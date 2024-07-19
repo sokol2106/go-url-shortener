@@ -28,7 +28,7 @@ func WithFile(filename string) Option {
 	}
 }
 
-func initStorage(db *storage.PostgreSQL, file *storage.File) service.StorageURL {
+func initStorage(db *storage.PostgreSQL, file *storage.File) service.Storage {
 	if err := db.Connect(); err == nil {
 		err = db.Migrations("file://migrations/postgresql")
 		log.Printf("error Migrations db: %s", err)
