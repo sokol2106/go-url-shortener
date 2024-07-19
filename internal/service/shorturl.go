@@ -2,14 +2,18 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 )
 
 type Storage interface {
 	AddOriginalURL(string, string) (string, error)
 	AddOriginalURLBatch([]RequestBatch, string, string) ([]ResponseBatch, error)
 	GetOriginalURL(context.Context, string) string
+	GetUserShortenedURLs(context.Context, string, string) ([]ResponseUserShortenedURL, error)
 	PingContext() error
 	Close() error
 }
@@ -29,6 +33,11 @@ type ResponseBatch struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type ResponseUserShortenedURL struct {
+	OriginalURL string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+}
+
 func NewShortURL(redirectURL string, strg Storage) *ShortURL {
 	s := new(ShortURL)
 	s.RedirectURL = redirectURL
@@ -36,17 +45,39 @@ func NewShortURL(redirectURL string, strg Storage) *ShortURL {
 	return s
 }
 
-func (s *ShortURL) AddURL(url, userID string) (string, error) {
+func (s *ShortURL) AddOriginalURL(url, userID string) (string, error) {
 	res, err := s.storage.AddOriginalURL(url, userID)
 	return fmt.Sprintf("%s/%s", s.RedirectURL, res), err
 }
 
-func (s *ShortURL) AddBatch(batch []RequestBatch, userID string) ([]ResponseBatch, error) {
+func (s *ShortURL) AddOriginalURLBatch(batch []RequestBatch, userID string) ([]ResponseBatch, error) {
 	return s.storage.AddOriginalURLBatch(batch, s.RedirectURL, userID)
 }
 
-func (s *ShortURL) GetURL(ctx context.Context, url string) string {
+func (s *ShortURL) GetOriginalURL(ctx context.Context, url string) string {
 	return s.storage.GetOriginalURL(ctx, url)
+}
+
+func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]byte, error) {
+	var res bytes.Buffer
+	ctx2, cancel := context.WithCancel(ctx)
+	defer cancel()
+	responseBatch, err := s.storage.GetUserShortenedURLs(ctx2, userID, s.RedirectURL)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.NewEncoder(&res).Encode(responseBatch)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := io.ReadAll(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
 
 func (s *ShortURL) PingContext() error {

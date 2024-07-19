@@ -16,8 +16,8 @@ import (
 )
 
 type Handlers struct {
-	srvShortURL *service.ShortURL
-	srvAuth     *service.Authorization
+	srvShortURL      *service.ShortURL
+	srvAuthorization *service.Authorization
 }
 
 type RequestJSON struct {
@@ -30,12 +30,12 @@ type ResponseJSON struct {
 
 func NewHandlers(srv *service.ShortURL) *Handlers {
 	return &Handlers{
-		srvShortURL: srv,
-		srvAuth:     service.NewAuthorization(),
+		srvShortURL:      srv,
+		srvAuthorization: service.NewAuthorization(),
 	}
 }
 
-func (s *Handlers) handlerError(err error) int {
+func (h *Handlers) handlerError(err error) int {
 	statusCode := http.StatusBadRequest
 	if errors.Is(err, cerrors.ErrNewShortURL) {
 		statusCode = http.StatusConflict
@@ -45,24 +45,23 @@ func (s *Handlers) handlerError(err error) int {
 	return statusCode
 }
 
-func (s *Handlers) Post(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	handlerStatus := http.StatusCreated
 	body, err := io.ReadAll(r.Body)
 	defer r.Body.Close()
 
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
 		}
 	}
 
-	user := "123456"
-	shortURL, err := s.srvShortURL.AddURL(string(body), user)
+	shortURL, err := h.srvShortURL.AddOriginalURL(string(body), h.srvAuthorization.GetCurrentUserID())
 
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -74,7 +73,7 @@ func (s *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(shortURL))
 }
 
-func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -85,7 +84,7 @@ func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -99,18 +98,17 @@ func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &reqJS)
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
 		}
 	}
 
-	user := "123456"
-	resJS.Result, err = s.srvShortURL.AddURL(reqJS.URL, user)
+	resJS.Result, err = h.srvShortURL.AddOriginalURL(reqJS.URL, h.srvAuthorization.GetCurrentUserID())
 
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -119,7 +117,7 @@ func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 
 	resBody, err := json.Marshal(resJS)
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -131,7 +129,7 @@ func (s *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
-func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 	var (
 		requestBatch  []service.RequestBatch
 		responseBatch []service.ResponseBatch
@@ -142,17 +140,17 @@ func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 	handlerStatus := http.StatusCreated
 
 	if err = json.NewDecoder(r.Body).Decode(&requestBatch); err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
 		}
 	}
 
-	userID := "123456"
-	responseBatch, err = s.srvShortURL.AddBatch(requestBatch, userID)
+	responseBatch, err = h.srvShortURL.AddOriginalURLBatch(requestBatch, h.srvAuthorization.GetCurrentUserID())
+
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -161,7 +159,7 @@ func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(&resBody).Encode(responseBatch)
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -170,7 +168,7 @@ func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 
 	bodyB, err := io.ReadAll(&resBody)
 	if err != nil {
-		handlerStatus = s.handlerError(err)
+		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
 			w.WriteHeader(handlerStatus)
 			return
@@ -184,11 +182,11 @@ func (s *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 	w.Write(bodyB)
 }
 
-func (s *Handlers) Get(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	path := chi.URLParam(r, "id")
-	URL := s.srvShortURL.GetURL(ctx, path)
+	URL := h.srvShortURL.GetOriginalURL(ctx, path)
 	if URL != "" {
 		w.Header().Set("Location", URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -197,12 +195,12 @@ func (s *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (s *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func (s *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
-	err := s.srvShortURL.PingContext()
+func (h *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
+	err := h.srvShortURL.PingContext()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -210,8 +208,23 @@ func (s *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *Handlers) GetUserURL(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	res, err := h.srvShortURL.GetUserShortenedURLs(ctx, h.srvAuthorization.GetCurrentUserID())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
+	if len(res) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
 }
 
 func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
@@ -220,7 +233,7 @@ func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 		// Ошибка по куке
 		if err != nil {
 			s.handlerError(err)
-			tkn, err := s.srvAuth.NewUserToken()
+			tkn, err := s.srvAuthorization.NewUserToken()
 			if err != nil {
 				s.handlerError(err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -231,17 +244,20 @@ func (s *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 			http.SetCookie(w, &newCookie)
 		} else {
 			// Без ошибок
-			isUser, err := s.srvAuth.IsUser(cookie.Value)
+			userID, err := s.srvAuthorization.GetUserID(cookie.Value)
 			if err != nil {
 				s.handlerError(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
+			isUser := s.srvAuthorization.IsUser(userID)
 			if !isUser {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
+
+			s.srvAuthorization.SetCurrentUserID(userID)
 			http.SetCookie(w, cookie)
 		}
 
@@ -265,7 +281,7 @@ func Router(handler *Handlers) chi.Router {
 	router.Get("/{id}", http.HandlerFunc(handler.Get))
 	router.Get("/*", http.HandlerFunc(handler.GetAll))
 	router.Get("/ping", http.HandlerFunc(handler.GetPing))
-	//router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserURL))
+	router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserShortenedURLs))
 
 	return router
 }

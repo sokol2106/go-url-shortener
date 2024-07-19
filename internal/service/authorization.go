@@ -10,7 +10,8 @@ import (
 )
 
 type Authorization struct {
-	users sync.Map
+	users         sync.Map
+	currentUserId string
 }
 
 func NewAuthorization() *Authorization {
@@ -27,17 +28,30 @@ func (ath *Authorization) NewUserToken() (string, error) {
 	ath.users.Store(userID.String(), user)
 	token, err := NewToken(userID.String())
 
+	ath.currentUserId = userID.String()
 	return token, err
 }
 
-func (ath *Authorization) IsUser(token string) (bool, error) {
+func (ath *Authorization) IsUser(userID string) bool {
+	_, ok := ath.users.Load(userID)
+	return ok
+}
+
+func (ath *Authorization) GetUserID(token string) (string, error) {
 	userID, err := ReadToken(token)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
-	_, ok := ath.users.Load(userID)
-	return ok, err
+	return userID, err
+}
+
+func (ath *Authorization) SetCurrentUserID(userID string) {
+	ath.currentUserId = userID
+}
+
+func (ath *Authorization) GetCurrentUserID() string {
+	return ath.currentUserId
 }
 
 const tokenEXP = time.Hour * 3

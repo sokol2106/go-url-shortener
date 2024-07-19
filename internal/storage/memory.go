@@ -62,6 +62,19 @@ func (s *Memory) GetOriginalURL(ctx context.Context, shURL string) string {
 	return original
 }
 
+func (s *Memory) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
+	result := make([]service.ResponseUserShortenedURL, 0)
+	s.mapData.Range(func(key, value interface{}) bool {
+		mdl := value.(model.ShortData)
+		if userID == mdl.UserID {
+			result = append(result, service.ResponseUserShortenedURL{OriginalURL: mdl.OriginalURL, ShortURL: fmt.Sprintf("%s/%s", redirectURL, mdl.ShortURL)})
+		}
+		return true
+	})
+
+	return result, nil
+}
+
 func (s *Memory) getOrCreateShortData(hash, url, userID string) (*model.ShortData, bool) {
 	var shortData model.ShortData
 	value, exist := s.mapData.Load(hash)

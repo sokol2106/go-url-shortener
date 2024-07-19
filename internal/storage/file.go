@@ -91,6 +91,29 @@ func (s *File) GetOriginalURL(ctx context.Context, shURL string) string {
 	return shortData.OriginalURL
 }
 
+func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
+	result := make([]service.ResponseUserShortenedURL, 0)
+	newFile, _ := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	scanner := bufio.NewScanner(newFile)
+	for scanner.Scan() {
+		data := scanner.Bytes()
+		mdl := &model.ShortData{}
+		if err := json.Unmarshal(data, mdl); err != nil {
+			newFile.Close()
+			return nil, err
+		}
+
+		if mdl.UserID == userID {
+			result = append(result, service.ResponseUserShortenedURL{OriginalURL: mdl.OriginalURL, ShortURL: fmt.Sprintf("%s/%s", redirectURL, mdl.ShortURL)})
+		}
+
+	}
+
+	newFile.Close()
+	return result, nil
+
+}
+
 func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID string) (*model.ShortData, bool) {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
