@@ -361,7 +361,9 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		// No Cooke
 		request, err := http.NewRequest(http.MethodPost, server.URL, strings.NewReader("https://www.ozon.ru/"))
 		require.NoError(t, err)
+
 		response, err := server.Client().Do(request)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusCreated, response.StatusCode)
 		assert.Equal(t, "text/plain", response.Header.Get("Content-Type"))
@@ -371,7 +373,9 @@ func TestGetUserShortenedURLs(t *testing.T) {
 		// No Cooke
 		request, err = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("https://calendar.google.com/"))
 		require.NoError(t, err)
+
 		response, err = server.Client().Do(request)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusCreated, response.StatusCode)
 		assert.Equal(t, "text/plain", response.Header.Get("Content-Type"))
@@ -379,8 +383,11 @@ func TestGetUserShortenedURLs(t *testing.T) {
 
 		// Cooke
 		request, err = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("https://ya.ru/"))
+		require.NoError(t, err)
 		request.AddCookie(response.Cookies()[0])
+
 		response, err = server.Client().Do(request)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusCreated, response.StatusCode)
 		assert.Equal(t, "text/plain", response.Header.Get("Content-Type"))
@@ -388,40 +395,42 @@ func TestGetUserShortenedURLs(t *testing.T) {
 
 		// user 2
 		request, err = http.NewRequest(http.MethodGet, server.URL+"/api/user/urls", strings.NewReader(""))
-		request.AddCookie(response.Cookies()[0])
-		response, err = server.Client().Do(request)
 		require.NoError(t, err)
+		request.AddCookie(response.Cookies()[0])
 
+		response, err = server.Client().Do(request)
+		defer response.Body.Close()
+		require.NoError(t, err)
 		_, err = io.ReadAll(response.Body)
 		require.NoError(t, err)
 		//assert.Equal(t, "", bodyBytes)
-		defer response.Body.Close()
 
 		// user 1
 		request, err = http.NewRequest(http.MethodGet, server.URL+"/api/user/urls", strings.NewReader(""))
-		request.AddCookie(cookieUser1)
-		response, err = server.Client().Do(request)
 		require.NoError(t, err)
+		request.AddCookie(cookieUser1)
 
+		response, err = server.Client().Do(request)
+		defer response.Body.Close()
+		require.NoError(t, err)
 		_, err = io.ReadAll(response.Body)
 		require.NoError(t, err)
 		//assert.Equal(t, "", bodyBytes)
-		defer response.Body.Close()
 
 		// user 777
 		request, err = http.NewRequest(http.MethodGet, server.URL+"/api/user/urls", strings.NewReader(""))
-
+		require.NoError(t, err)
 		auth := service.NewAuthorization()
 		tkn, err := auth.NewUserToken()
 		newCookie := http.Cookie{Name: "user", Value: tkn}
 		request.AddCookie(&newCookie)
-		response, err = server.Client().Do(request)
-		require.NoError(t, err)
 
+		response, err = server.Client().Do(request)
+		defer response.Body.Close()
+		require.NoError(t, err)
 		_, err = io.ReadAll(response.Body)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusUnauthorized, response.StatusCode)
-		defer response.Body.Close()
 
 	})
 }
