@@ -209,6 +209,11 @@ func (h *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
+	if h.srvAuthorization.IsNewUser() {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	res, err := h.srvShortURL.GetUserShortenedURLs(ctx, h.srvAuthorization.GetCurrentUserID())
@@ -231,7 +236,7 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("user")
-		// Ошибка по куке
+		// не существует или она не проходит проверку подлинности
 		if err != nil {
 			h.handlerError(err)
 			tkn, err := h.srvAuthorization.NewUserToken()
@@ -254,6 +259,7 @@ func (h *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 
 			isUser := h.srvAuthorization.IsUser(userID)
 			if !isUser {
+				h.handlerError(err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
