@@ -217,12 +217,12 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if len(res) == 0 {
+	if len(res) < 4 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	log.Printf("err AAA request: user: %s", h.srvAuthorization.GetCurrentUserID())
+	log.Printf("err AAA request: len: %d", len(res))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
@@ -241,7 +241,6 @@ func (h *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 				return
 			}
 
-			log.Printf("err TOKEN request: user: %s", h.srvAuthorization.GetCurrentUserID())
 			newCookie := http.Cookie{Name: "user", Value: tkn}
 			http.SetCookie(w, &newCookie)
 		} else {
