@@ -79,7 +79,7 @@ func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, erro
 	err = nil
 	hash := GenerateHash(originalURL)
 	shortURL := RandText(8)
-	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid, deleteflag) VALUES ($1, $2, $3, $4)",
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid, deleteflag) VALUES ($1, $2, $3, $4, $5)",
 		hash,
 		shortURL,
 		originalURL,
