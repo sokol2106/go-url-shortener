@@ -75,13 +75,17 @@ func (s *Memory) GetUserShortenedURLs(ctx context.Context, userID, redirectURL s
 	return result, nil
 }
 
+func (s *Memory) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) error {
+	return nil
+}
+
 func (s *Memory) getOrCreateShortData(hash, url, userID string) (*model.ShortData, bool) {
 	var shortData model.ShortData
 	value, exist := s.mapData.Load(hash)
 	if exist {
 		shortData = value.(model.ShortData)
 	} else {
-		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
+		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID, DeletedFlag: false}
 		s.mapData.Store(hash, shortData)
 	}
 	return &shortData, exist

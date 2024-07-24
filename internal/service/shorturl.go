@@ -14,6 +14,7 @@ type Storage interface {
 	AddOriginalURLBatch([]RequestBatch, string, string) ([]ResponseBatch, error)
 	GetOriginalURL(context.Context, string) string
 	GetUserShortenedURLs(context.Context, string, string) ([]ResponseUserShortenedURL, error)
+	DeleteOriginalURLs(context.Context, string, []string) error
 	PingContext() error
 	Close() error
 }
@@ -78,6 +79,10 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 	}
 
 	return body, nil
+}
+
+func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, urls []string) error {
+	return nil
 }
 
 func (s *ShortURL) PingContext() error {

@@ -79,11 +79,12 @@ func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, erro
 	err = nil
 	hash := GenerateHash(originalURL)
 	shortURL := RandText(8)
-	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid) VALUES ($1, $2, $3, $4)",
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid, deleteflag) VALUES ($1, $2, $3, $4)",
 		hash,
 		shortURL,
 		originalURL,
-		userID)
+		userID,
+		false)
 
 	if errInser != nil {
 		rows, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
@@ -164,6 +165,10 @@ func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redire
 	}
 
 	return result, nil
+}
+
+func (pstg *PostgreSQL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) error {
+	return nil
 }
 
 func (pstg *PostgreSQL) PingContext() error {

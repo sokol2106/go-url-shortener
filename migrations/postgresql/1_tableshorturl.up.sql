@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS public.shorturl
             PRIMARY KEY,
     short text,
     userid text,
+    deleteflag bool,
     original text CONSTRAINT shorturl_pk_2
         unique
 );
@@ -12,4 +13,5 @@ CREATE TABLE IF NOT EXISTS public.shorturl
 COMMENT ON TABLE public.shorturl IS 'Сокрашённые ссылки URL';
 COMMENT ON COLUMN public.shorturl.short IS 'Сокращённая';
 COMMENT ON COLUMN public.shorturl.userid IS 'Пользователь';
+COMMENT ON COLUMN public.shorturl.deleteflag IS 'Удалён';
 COMMENT ON COLUMN public.shorturl.original IS 'Оригинальная ';

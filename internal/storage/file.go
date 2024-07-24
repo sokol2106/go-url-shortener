@@ -114,6 +114,10 @@ func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL str
 
 }
 
+func (s *File) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) error {
+	return nil
+}
+
 func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID string) (*model.ShortData, bool) {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
@@ -121,7 +125,7 @@ func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID strin
 	isNewShortData := false
 	if shortData == nil {
 		isNewShortData = true
-		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
+		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID, DeletedFlag: false}
 	}
 
 	return shortData, isNewShortData
