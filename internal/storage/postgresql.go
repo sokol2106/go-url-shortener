@@ -11,7 +11,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"log"
 	"time"
 )
@@ -52,43 +52,38 @@ func (pstg *PostgreSQL) Connect() error {
 	return nil
 }
 
-func (pstg *PostgreSQL) Close() error {
-	if pstg.db != nil {
-		return pstg.db.Close()
+func (pstg *PostgreSQL) Migrations(pathFiles string) error {
+	driver, err := postgres.WithInstance(pstg.db, &postgres.Config{})
+	if err != nil {
+		log.Printf("error creating postgres driver: %v", err)
+		return err
 	}
+
+	m, err := migrate.NewWithDatabaseInstance(pathFiles, "postgres", driver)
+	if err != nil {
+		log.Println("error migrate Postgresql", err)
+		return err
+	}
+
+	if err = m.Up(); err != nil {
+		log.Println("error up Postgresql", err)
+		return err
+	}
+
 	return nil
 }
 
-func (pstg *PostgreSQL) PingContext() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	return pstg.db.PingContext(ctx)
-}
-
-func (pstg *PostgreSQL) GetURL(ctx context.Context, shURL string) string {
-	var originalURL string
-	ctxDB, cancelDB := context.WithCancel(ctx)
-	defer cancelDB()
-	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original FROM public.shorturl WHERE short=$1", shURL)
-	err := rows.Scan(&originalURL)
-	if err != nil {
-		log.Println("error scanning short url postgresql", err)
-		return ""
-	}
-
-	return originalURL
-}
-
-func (pstg *PostgreSQL) AddURL(originalURL string) (string, error) {
+func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, error) {
 	var err error
 
 	err = nil
 	hash := GenerateHash(originalURL)
 	shortURL := RandText(8)
-	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original) VALUES ($1 ,$2 ,$3 )",
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid) VALUES ($1, $2, $3, $4)",
 		hash,
 		shortURL,
-		originalURL)
+		originalURL,
+		userID)
 
 	if errInser != nil {
 		rows, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
@@ -113,40 +108,73 @@ func (pstg *PostgreSQL) AddURL(originalURL string) (string, error) {
 	return shortURL, err
 }
 
-func (pstg *PostgreSQL) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirectURL, userID string) ([]service.ResponseBatch, error) {
 	var err error
 	err = nil
-	resp := make([]shorturl.ResponseBatch, len(req))
+	resp := make([]service.ResponseBatch, len(req))
 	for i, val := range req {
-		sh, errAdd := pstg.AddURL(val.OriginalURL)
+		sh, errAdd := pstg.AddOriginalURL(val.OriginalURL, userID)
 		if errAdd != nil {
 			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd
 			}
 			err = errAdd
 		}
-		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
+		resp[i] = service.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 	return resp, err
 }
 
-func (pstg *PostgreSQL) Migrations(pathFiles string) error {
-	driver, err := postgres.WithInstance(pstg.db, &postgres.Config{})
+func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) string {
+	var originalURL string
+	ctxDB, cancelDB := context.WithCancel(ctx)
+	defer cancelDB()
+	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original FROM public.shorturl WHERE short=$1", shURL)
+	err := rows.Scan(&originalURL)
 	if err != nil {
-		log.Printf("error creating postgres driver: %v", err)
-		return err
+		log.Println("error scanning short url postgresql", err)
+		return ""
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(pathFiles, "postgres", driver)
+	return originalURL
+}
+
+func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
+	result := make([]service.ResponseUserShortenedURL, 0)
+	var originalURL, shortURL string
+	ctxDB, cancelDB := context.WithCancel(ctx)
+	defer cancelDB()
+	rows, err := pstg.db.QueryContext(ctxDB, "SELECT original, short FROM public.shorturl WHERE userid=$1", userID)
 	if err != nil {
-		log.Println("error migrate Postgresql", err)
-		return err
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&originalURL, &shortURL)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, service.ResponseUserShortenedURL{OriginalURL: originalURL, ShortURL: fmt.Sprintf("%s/%s", redirectURL, shortURL)})
 	}
 
-	if err = m.Up(); err != nil {
-		log.Println("error up Postgresql", err)
-		return err
+	err = rows.Err()
+	if err != nil {
+		return nil, err
 	}
 
+	return result, nil
+}
+
+func (pstg *PostgreSQL) PingContext() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	return pstg.db.PingContext(ctx)
+}
+
+func (pstg *PostgreSQL) Close() error {
+	if pstg.db != nil {
+		return pstg.db.Close()
+	}
 	return nil
 }

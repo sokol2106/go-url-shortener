@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
 	"github.com/sokol2106/go-url-shortener/internal/model"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"os"
 	"time"
 )
@@ -45,12 +45,12 @@ func NewFile(filename string) *File {
 	return nil
 }
 
-func (s *File) AddURL(originalURL string) (string, error) {
+func (s *File) AddOriginalURL(originalURL, userID string) (string, error) {
 	ctxF, cancelF := context.WithTimeout(context.Background(), 5000*time.Second)
 	defer cancelF()
 	err := cerrors.ErrNewShortURL
 	hash := GenerateHash(originalURL)
-	shortData, isNewShortData := s.getOrCreateShortData(ctxF, hash, originalURL)
+	shortData, isNewShortData := s.getOrCreateShortData(ctxF, hash, originalURL, userID)
 	if isNewShortData {
 		err = nil
 		if s.isWriteEnable {
@@ -64,24 +64,24 @@ func (s *File) AddURL(originalURL string) (string, error) {
 	return shortData.ShortURL, err
 }
 
-func (s *File) AddBatch(req []shorturl.RequestBatch, redirectURL string) ([]shorturl.ResponseBatch, error) {
+func (s *File) AddOriginalURLBatch(req []service.RequestBatch, redirectURL string, userID string) ([]service.ResponseBatch, error) {
 	var err error = nil
-	resp := make([]shorturl.ResponseBatch, len(req))
+	resp := make([]service.ResponseBatch, len(req))
 	for i, val := range req {
-		sh, errAdd := s.AddURL(val.OriginalURL)
+		sh, errAdd := s.AddOriginalURL(val.OriginalURL, userID)
 		if errAdd != nil {
 			if !errors.Is(errAdd, cerrors.ErrNewShortURL) {
 				return nil, errAdd
 			}
 			err = errAdd
 		}
-		resp[i] = shorturl.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
+		resp[i] = service.ResponseBatch{CorrelationID: val.CorrelationID, ShortURL: fmt.Sprintf("%s/%s", redirectURL, sh)}
 	}
 
 	return resp, err
 }
 
-func (s *File) GetURL(ctx context.Context, shURL string) string {
+func (s *File) GetOriginalURL(ctx context.Context, shURL string) string {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
 	shortData := s.find(ctxF, model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
@@ -91,14 +91,37 @@ func (s *File) GetURL(ctx context.Context, shURL string) string {
 	return shortData.OriginalURL
 }
 
-func (s *File) getOrCreateShortData(ctx context.Context, hash, url string) (*model.ShortData, bool) {
+func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
+	result := make([]service.ResponseUserShortenedURL, 0)
+	newFile, _ := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	scanner := bufio.NewScanner(newFile)
+	for scanner.Scan() {
+		data := scanner.Bytes()
+		mdl := &model.ShortData{}
+		if err := json.Unmarshal(data, mdl); err != nil {
+			newFile.Close()
+			return nil, err
+		}
+
+		if mdl.UserID == userID {
+			result = append(result, service.ResponseUserShortenedURL{OriginalURL: mdl.OriginalURL, ShortURL: fmt.Sprintf("%s/%s", redirectURL, mdl.ShortURL)})
+		}
+
+	}
+
+	newFile.Close()
+	return result, nil
+
+}
+
+func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID string) (*model.ShortData, bool) {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
 	shortData := s.find(ctxF, model.ShortData{UUID: hash, OriginalURL: url, ShortURL: ""})
 	isNewShortData := false
 	if shortData == nil {
 		isNewShortData = true
-		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url}
+		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
 	}
 
 	return shortData, isNewShortData

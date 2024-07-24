@@ -2,8 +2,9 @@ package app
 
 import (
 	"github.com/sokol2106/go-url-shortener/internal/config"
-	"github.com/sokol2106/go-url-shortener/internal/handlers/shorturl"
+	"github.com/sokol2106/go-url-shortener/internal/handlers"
 	"github.com/sokol2106/go-url-shortener/internal/server"
+	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"log"
 )
@@ -27,7 +28,7 @@ func WithFile(filename string) Option {
 	}
 }
 
-func initStorage(db *storage.PostgreSQL, file *storage.File) shorturl.StorageURL {
+func initStorage(db *storage.PostgreSQL, file *storage.File) service.Storage {
 	if err := db.Connect(); err == nil {
 		err = db.Migrations("file://migrations/postgresql")
 		log.Printf("error Migrations db: %s", err)
@@ -43,9 +44,6 @@ func initStorage(db *storage.PostgreSQL, file *storage.File) shorturl.StorageURL
 }
 
 func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
-	var (
-		handlerShort *shorturl.ShortURL
-	)
 
 	app := &App{}
 	for _, opt := range opts {
@@ -53,9 +51,10 @@ func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 	}
 
 	objStorage := initStorage(app.DB, app.File)
-	handlerShort = shorturl.New(shCnf.URL(), objStorage)
+	srvShortURL := service.NewShortURL(shCnf.URL(), objStorage)
+	handler := handlers.NewHandlers(srvShortURL)
 
-	ser := server.NewServer(shorturl.Router(handlerShort), bsCnf.Addr())
+	ser := server.NewServer(handlers.Router(handler), bsCnf.Addr())
 	err := ser.Start()
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
