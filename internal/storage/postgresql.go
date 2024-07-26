@@ -129,15 +129,15 @@ func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirect
 
 func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
 	var (
-		originalURL string
-		deleteFlag  bool
-		result      model.ShortData
+		//originalURL string
+		//deleteFlag  bool
+		result model.ShortData
 	)
 
 	ctxDB, cancelDB := context.WithCancel(ctx)
 	defer cancelDB()
 	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original, deleteflag FROM public.shorturl WHERE short=$1", shURL)
-	err := rows.Scan(&originalURL, &deleteFlag)
+	err := rows.Scan(&result.OriginalURL, &result.DeletedFlag)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return result, cerrors.ErrGetShortURLNotFind
