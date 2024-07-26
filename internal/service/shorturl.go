@@ -110,6 +110,16 @@ func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortU
 	s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
+	s.deleteOriginalURL(inCH)
 	//resultCh := s.funIn(ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10)
 
 	//for res := range resultCh {
