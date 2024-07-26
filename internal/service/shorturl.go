@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"io"
 	"sync"
@@ -68,9 +69,9 @@ func (s *ShortURL) GetOriginalURL(ctx context.Context, shortURL string) (string,
 		return "", err
 	}
 
-	//if mdl.DeletedFlag {
-	//	return "", cerrors.ErrGetShortURLDelete
-	//}
+	if mdl.DeletedFlag {
+		return "", cerrors.ErrGetShortURLDelete
+	}
 
 	return mdl.OriginalURL, nil
 }
@@ -102,7 +103,8 @@ func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortU
 	ch1 := s.deleteOriginalURL(inCH)
 	ch2 := s.deleteOriginalURL(inCH)
 	ch3 := s.deleteOriginalURL(inCH)
-	s.funIn(ch1, ch2, ch3)
+	ch4 := s.deleteOriginalURL(inCH)
+	s.funIn(ch1, ch2, ch3, ch4)
 }
 
 func (s *ShortURL) PingContext() error {

@@ -129,8 +129,6 @@ func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirect
 
 func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
 	var (
-		//originalURL string
-		//deleteFlag  bool
 		result model.ShortData
 	)
 
