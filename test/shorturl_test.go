@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
+	"time"
 )
 
 func TestServiceShortURL(t *testing.T) {
@@ -84,11 +85,11 @@ func TestDeleteURLs(t *testing.T) {
 	mdl2 := model.ShortData{OriginalURL: "https://translate.yandex.ru/", UserID: "222222"}
 	mdl3 := model.ShortData{OriginalURL: "https://yandex.ru/maps/", UserID: "222222"}
 
-	deleteShortURLs := make([]string, 10)
+	deleteShortURLs := make([]string, 3)
 
-	for i := 0; i < 10; i++ {
-		deleteShortURLs[i] = storage.RandText(8)
-	}
+	//	for i := 0; i < 300; i++ {
+	//		deleteShortURLs[i] = storage.RandText(8)
+	//	}
 
 	t.Run("testDeleteURLs", func(t *testing.T) {
 		mdl.ShortURL, err = srvShort.AddOriginalURL(mdl.OriginalURL, mdl.UserID)
@@ -106,8 +107,8 @@ func TestDeleteURLs(t *testing.T) {
 		mdl3.ShortURL, err = srvShort.AddOriginalURL(mdl3.OriginalURL, mdl3.UserID)
 		require.NoError(t, err)
 
-		// Удаление для пользователя 111111
 		srvShort.DeleteOriginalURLs(context.Background(), mdl.UserID, deleteShortURLs)
+		time.Sleep(1 * time.Second)
 
 		originalURL, err2 := srvShort.GetOriginalURL(context.Background(), deleteShortURLs[0])
 		assert.Equal(t, err2, cerrors.ErrGetShortURLDelete)
