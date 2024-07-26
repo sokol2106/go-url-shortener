@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"io"
 	"sync"
@@ -69,9 +68,9 @@ func (s *ShortURL) GetOriginalURL(ctx context.Context, shortURL string) (string,
 		return "", err
 	}
 
-	if mdl.DeletedFlag {
-		return "", cerrors.ErrGetShortURLDelete
-	}
+	//if mdl.DeletedFlag {
+	//	return "", cerrors.ErrGetShortURLDelete
+	//}
 
 	return mdl.OriginalURL, nil
 }
