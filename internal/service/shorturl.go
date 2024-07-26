@@ -104,7 +104,13 @@ func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortU
 	ch2 := s.deleteOriginalURL(inCH)
 	ch3 := s.deleteOriginalURL(inCH)
 	ch4 := s.deleteOriginalURL(inCH)
-	s.funIn(ch1, ch2, ch3, ch4)
+	ch5 := s.deleteOriginalURL(inCH)
+	ch6 := s.deleteOriginalURL(inCH)
+	ch7 := s.deleteOriginalURL(inCH)
+	ch8 := s.deleteOriginalURL(inCH)
+	ch9 := s.deleteOriginalURL(inCH)
+	ch10 := s.deleteOriginalURL(inCH)
+	s.funIn(ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10)
 }
 
 func (s *ShortURL) PingContext() error {
