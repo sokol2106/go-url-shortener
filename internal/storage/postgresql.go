@@ -11,6 +11,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
+	"github.com/sokol2106/go-url-shortener/internal/model"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"log"
 	"time"
@@ -126,18 +127,26 @@ func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirect
 	return resp, err
 }
 
-func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) string {
-	var originalURL string
+func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
+	var (
+		originalURL string
+		deleteFlag  bool
+		result      model.ShortData
+	)
+
 	ctxDB, cancelDB := context.WithCancel(ctx)
 	defer cancelDB()
-	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original FROM public.shorturl WHERE short=$1", shURL)
-	err := rows.Scan(&originalURL)
+	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original, deleteflag FROM public.shorturl WHERE short=$1", shURL)
+	err := rows.Scan(&originalURL, &deleteFlag)
 	if err != nil {
-		log.Println("error scanning short url postgresql", err)
-		return ""
+		if err == sql.ErrNoRows {
+			return result, cerrors.ErrGetShortURLNotFind
+		} else {
+			return result, err
+		}
 	}
 
-	return originalURL
+	return result, nil
 }
 
 func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
@@ -167,8 +176,11 @@ func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redire
 	return result, nil
 }
 
-func (pstg *PostgreSQL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) error {
-	return nil
+func (pstg *PostgreSQL) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
+	_, errInser := pstg.db.ExecContext(context.Background(), "UPDATE public.shorturl SET deleteflag = true WHERE short=$1 AND userid=$2",
+		data.ShortURL,
+		data.UserID)
+	return errInser
 }
 
 func (pstg *PostgreSQL) PingContext() error {

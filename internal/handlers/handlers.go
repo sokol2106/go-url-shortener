@@ -40,6 +40,9 @@ func (h *Handlers) handlerError(err error) int {
 	if errors.Is(err, cerrors.ErrNewShortURL) {
 		statusCode = http.StatusConflict
 	}
+	if errors.Is(err, cerrors.ErrGetShortURLDelete) {
+		statusCode = http.StatusGone
+	}
 
 	log.Printf("error handling request: %v, status: %d", err, statusCode)
 	return statusCode
@@ -186,13 +189,15 @@ func (h *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	path := chi.URLParam(r, "id")
-	URL := h.srvShortURL.GetOriginalURL(ctx, path)
-	if URL != "" {
-		w.Header().Set("Location", URL)
-		w.WriteHeader(http.StatusTemporaryRedirect)
+	URL, err := h.srvShortURL.GetOriginalURL(ctx, path)
+
+	if err != nil {
+		w.WriteHeader(h.handlerError(err))
 		return
 	}
-	w.WriteHeader(http.StatusBadRequest)
+
+	w.Header().Set("Location", URL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {

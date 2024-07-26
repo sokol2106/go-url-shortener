@@ -284,8 +284,9 @@ func TestFileReadWrite(t *testing.T) {
 				urlParse, err := url.Parse(string(resBody))
 				require.NoError(t, err)
 
-				resURL := objectStorage.GetOriginalURL(context.Background(), strings.ReplaceAll(urlParse.Path, "/", ""))
-				assert.Equal(t, tt.url, resURL)
+				resURL, err := objectStorage.GetOriginalURL(context.Background(), strings.ReplaceAll(urlParse.Path, "/", ""))
+				require.NoError(t, err)
+				assert.Equal(t, tt.url, resURL.OriginalURL)
 
 				err = srvShortURL.Close()
 				require.NoError(t, err)

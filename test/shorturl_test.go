@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
+	"time"
 )
 
 func TestServiceShortURL(t *testing.T) {
@@ -67,6 +69,55 @@ func TestServiceShortURL(t *testing.T) {
 		res, err = srvShort.GetUserShortenedURLs(context.Background(), mdl3.UserID)
 		require.NoError(t, err)
 		assert.JSONEq(t, string(body), string(res))
+
+	})
+}
+
+func TestDeleteURLs(t *testing.T) {
+	var err error
+	baseURL := ""
+	str := storage.NewMemory()
+	srvShort := service.NewShortURL(baseURL, str)
+	defer srvShort.Close()
+
+	mdl := model.ShortData{OriginalURL: "https://www.youtube.com/", UserID: "111111"}
+	mdl1 := model.ShortData{OriginalURL: "https://ya.ru/", UserID: "111111"}
+	mdl2 := model.ShortData{OriginalURL: "https://translate.yandex.ru/", UserID: "222222"}
+	mdl3 := model.ShortData{OriginalURL: "https://yandex.ru/maps/", UserID: "222222"}
+
+	deleteShortURLs := make([]string, 3)
+
+	t.Run("testDeleteURLs", func(t *testing.T) {
+		mdl.ShortURL, err = srvShort.AddOriginalURL(mdl.OriginalURL, mdl.UserID)
+		require.NoError(t, err)
+		deleteShortURLs[0] = mdl.ShortURL[1:]
+
+		mdl1.ShortURL, err = srvShort.AddOriginalURL(mdl1.OriginalURL, mdl1.UserID)
+		require.NoError(t, err)
+		deleteShortURLs[1] = mdl1.ShortURL[1:]
+
+		mdl2.ShortURL, err = srvShort.AddOriginalURL(mdl2.OriginalURL, mdl2.UserID)
+		require.NoError(t, err)
+		deleteShortURLs[2] = mdl2.ShortURL[1:]
+
+		mdl3.ShortURL, err = srvShort.AddOriginalURL(mdl3.OriginalURL, mdl3.UserID)
+		require.NoError(t, err)
+
+		// Удаление для пользователя 111111
+		srvShort.DeleteOriginalURLs(context.Background(), mdl.UserID, deleteShortURLs)
+		time.Sleep(2 * time.Second)
+
+		originalURL, err2 := srvShort.GetOriginalURL(context.Background(), deleteShortURLs[0])
+		assert.Equal(t, err2, cerrors.ErrGetShortURLDelete)
+		assert.Equal(t, originalURL, "")
+
+		originalURL, err2 = srvShort.GetOriginalURL(context.Background(), deleteShortURLs[1])
+		assert.Equal(t, err2, cerrors.ErrGetShortURLDelete)
+		assert.Equal(t, originalURL, "")
+
+		originalURL, err2 = srvShort.GetOriginalURL(context.Background(), deleteShortURLs[2])
+		require.NoError(t, err2)
+		assert.Equal(t, originalURL, mdl2.OriginalURL)
 
 	})
 }
