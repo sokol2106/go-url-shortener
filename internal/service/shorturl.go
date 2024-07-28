@@ -100,6 +100,8 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 
 func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) {
 	inCH := s.generatorDeleteShortURL(userID, shortURLs)
+	channels := s.funOut(inCH)
+	/*s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
@@ -119,8 +121,9 @@ func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortU
 	s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
 	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	//resultCh := s.funIn(ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8, ch9, ch10)
+	*
+	*/
+	s.funIn(channels...)
 
 	//for res := range resultCh {
 	//	fmt.Println(res)
@@ -185,4 +188,17 @@ func (s *ShortURL) funIn(chs ...chan error) chan error {
 	}()
 
 	return finalCh
+}
+
+func (s *ShortURL) funOut(inCH chan RequestUserShortenedURL) []chan error {
+
+	numWorkers := 20
+	channels := make([]chan error, numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		addResultCh := s.deleteOriginalURL(inCH)
+		channels[i] = addResultCh
+	}
+
+	return channels
 }
