@@ -46,6 +46,7 @@ func (suite *ServerTestSuite) TestPostAndGet() {
 	require.Len(suite.T(), resp.Cookies(), 1)
 	suite.cookie = resp.Cookies()[0]
 	resBody, err := io.ReadAll(resp.Body)
+	require.NoError(suite.T(), err)
 	resp.Body.Close()
 
 	resp, err = http.Get(string(resBody))
@@ -57,6 +58,7 @@ func (suite *ServerTestSuite) TestPostAndGet() {
 func (suite *ServerTestSuite) TestCoockie() {
 	resp, err := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader("https://github.com/"))
 	require.NoError(suite.T(), err)
+	defer resp.Body.Close()
 	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
 
 	cookies := resp.Cookies()
@@ -67,6 +69,7 @@ func (suite *ServerTestSuite) TestCoockie() {
 func (suite *ServerTestSuite) TestDeleteUserShortenedURLs() {
 	resp, err := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader("https://yandex.ru/maps/"))
 	require.NoError(suite.T(), err)
+	defer resp.Body.Close()
 	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
 	require.Len(suite.T(), resp.Cookies(), 1)
 	suite.cookie = resp.Cookies()[0]
@@ -118,13 +121,13 @@ func (suite *ServerTestSuite) TestGzipCompression() {
 
 	client := &http.Client{}
 	request, err := http.NewRequest(http.MethodPost, suite.server.URL, encodeBuffer)
+	require.NoError(suite.T(), err)
 	request.Header.Set("Content-Encoding", "gzip")
 	request.Header.Set("Accept-Encoding", "gzip")
-	require.NoError(suite.T(), err)
 
 	resp, err := client.Do(request)
+	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	assert.NoError(suite.T(), err)
 
 	require.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
 	require.Equal(suite.T(), "text/plain", resp.Header.Get("Content-Type"))
