@@ -61,7 +61,7 @@ func (ath *Authorization) IsNewUser() bool {
 	return ath.isNewUser
 }
 
-const tokenEXP = time.Hour * 3
+const tokenEXP = time.Hour * 24
 const secretKey = "supersecretkey"
 
 type Token struct {

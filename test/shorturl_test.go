@@ -87,10 +87,6 @@ func TestDeleteURLs(t *testing.T) {
 
 	deleteShortURLs := make([]string, 3)
 
-	//	for i := 0; i < 300; i++ {
-	//		deleteShortURLs[i] = storage.RandText(8)
-	//	}
-
 	t.Run("testDeleteURLs", func(t *testing.T) {
 		mdl.ShortURL, err = srvShort.AddOriginalURL(mdl.OriginalURL, mdl.UserID)
 		require.NoError(t, err)

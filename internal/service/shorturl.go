@@ -54,6 +54,10 @@ func NewShortURL(redirectURL string, strg Storage) *ShortURL {
 	return s
 }
 
+func (s *ShortURL) SetRedirectURL(url string) {
+	s.RedirectURL = url
+}
+
 func (s *ShortURL) AddOriginalURL(url, userID string) (string, error) {
 	res, err := s.storage.AddOriginalURL(url, userID)
 	return fmt.Sprintf("%s/%s", s.RedirectURL, res), err
@@ -101,33 +105,7 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) {
 	inCH := s.generatorDeleteShortURL(userID, shortURLs)
 	channels := s.funOut(inCH)
-	/*s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	s.deleteOriginalURL(inCH)
-	*
-	*/
 	s.funIn(channels...)
-
-	//for res := range resultCh {
-	//	fmt.Println(res)
-	//}
 }
 
 func (s *ShortURL) PingContext() error {
