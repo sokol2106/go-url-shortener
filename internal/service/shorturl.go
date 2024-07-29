@@ -6,14 +6,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/cerrors"
+	"github.com/sokol2106/go-url-shortener/internal/model"
 	"io"
+	"sync"
 )
 
 type Storage interface {
 	AddOriginalURL(string, string) (string, error)
 	AddOriginalURLBatch([]RequestBatch, string, string) ([]ResponseBatch, error)
-	GetOriginalURL(context.Context, string) string
+	GetOriginalURL(context.Context, string) (model.ShortData, error)
 	GetUserShortenedURLs(context.Context, string, string) ([]ResponseUserShortenedURL, error)
+	DeleteOriginalURL(context.Context, RequestUserShortenedURL) error
 	PingContext() error
 	Close() error
 }
@@ -38,11 +42,20 @@ type ResponseUserShortenedURL struct {
 	ShortURL    string `json:"short_url"`
 }
 
+type RequestUserShortenedURL struct {
+	UserID   string `json:"user_id"`
+	ShortURL string `json:"short_url"`
+}
+
 func NewShortURL(redirectURL string, strg Storage) *ShortURL {
 	s := new(ShortURL)
 	s.RedirectURL = redirectURL
 	s.storage = strg
 	return s
+}
+
+func (s *ShortURL) SetRedirectURL(url string) {
+	s.RedirectURL = url
 }
 
 func (s *ShortURL) AddOriginalURL(url, userID string) (string, error) {
@@ -54,8 +67,17 @@ func (s *ShortURL) AddOriginalURLBatch(batch []RequestBatch, userID string) ([]R
 	return s.storage.AddOriginalURLBatch(batch, s.RedirectURL, userID)
 }
 
-func (s *ShortURL) GetOriginalURL(ctx context.Context, url string) string {
-	return s.storage.GetOriginalURL(ctx, url)
+func (s *ShortURL) GetOriginalURL(ctx context.Context, shortURL string) (string, error) {
+	mdl, err := s.storage.GetOriginalURL(ctx, shortURL)
+	if err != nil {
+		return "", err
+	}
+
+	if mdl.DeletedFlag {
+		return "", cerrors.ErrGetShortURLDelete
+	}
+
+	return mdl.OriginalURL, nil
 }
 
 func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]byte, error) {
@@ -80,6 +102,12 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 	return body, nil
 }
 
+func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) {
+	inCH := s.generatorDeleteShortURL(userID, shortURLs)
+	channels := s.funOut(inCH)
+	s.funIn(channels...)
+}
+
 func (s *ShortURL) PingContext() error {
 	return s.storage.PingContext()
 }
@@ -87,4 +115,68 @@ func (s *ShortURL) PingContext() error {
 func (s *ShortURL) Close() error {
 	err := s.storage.Close()
 	return err
+}
+
+func (s *ShortURL) generatorDeleteShortURL(userID string, shortURLs []string) chan RequestUserShortenedURL {
+	inputCh := make(chan RequestUserShortenedURL)
+
+	go func() {
+		defer close(inputCh)
+		for _, value := range shortURLs {
+			data := RequestUserShortenedURL{UserID: userID, ShortURL: value}
+			inputCh <- data
+		}
+	}()
+
+	return inputCh
+}
+
+func (s *ShortURL) deleteOriginalURL(inputCh chan RequestUserShortenedURL) chan error {
+	resultCh := make(chan error)
+
+	go func() {
+		defer close(resultCh)
+		for data := range inputCh {
+			resultCh <- s.storage.DeleteOriginalURL(context.Background(), data)
+		}
+	}()
+
+	return resultCh
+}
+
+func (s *ShortURL) funIn(chs ...chan error) chan error {
+	finalCh := make(chan error)
+	var wg sync.WaitGroup
+
+	for _, ch := range chs {
+		chClosure := ch
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for data := range chClosure {
+				finalCh <- data
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(finalCh)
+	}()
+
+	return finalCh
+}
+
+func (s *ShortURL) funOut(inCH chan RequestUserShortenedURL) []chan error {
+
+	numWorkers := 20
+	channels := make([]chan error, numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		addResultCh := s.deleteOriginalURL(inCH)
+		channels[i] = addResultCh
+	}
+
+	return channels
 }

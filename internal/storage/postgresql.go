@@ -11,6 +11,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/github"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
+	"github.com/sokol2106/go-url-shortener/internal/model"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"log"
 	"time"
@@ -79,11 +80,12 @@ func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, erro
 	err = nil
 	hash := GenerateHash(originalURL)
 	shortURL := RandText(8)
-	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid) VALUES ($1, $2, $3, $4)",
+	_, errInser := pstg.db.ExecContext(context.Background(), "INSERT INTO public.shorturl (key, short, original, userid, deleteflag) VALUES ($1, $2, $3, $4, $5)",
 		hash,
 		shortURL,
 		originalURL,
-		userID)
+		userID,
+		false)
 
 	if errInser != nil {
 		rows, errSelect := pstg.db.QueryContext(context.Background(), "SELECT short FROM public.shorturl WHERE key=$1", hash)
@@ -125,18 +127,24 @@ func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirect
 	return resp, err
 }
 
-func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) string {
-	var originalURL string
+func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
+	var (
+		result model.ShortData
+	)
+
 	ctxDB, cancelDB := context.WithCancel(ctx)
 	defer cancelDB()
-	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original FROM public.shorturl WHERE short=$1", shURL)
-	err := rows.Scan(&originalURL)
+	rows := pstg.db.QueryRowContext(ctxDB, "SELECT original, deleteflag FROM public.shorturl WHERE short=$1", shURL)
+	err := rows.Scan(&result.OriginalURL, &result.DeletedFlag)
 	if err != nil {
-		log.Println("error scanning short url postgresql", err)
-		return ""
+		if err == sql.ErrNoRows {
+			return result, cerrors.ErrGetShortURLNotFind
+		} else {
+			return result, err
+		}
 	}
 
-	return originalURL
+	return result, nil
 }
 
 func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
@@ -164,6 +172,13 @@ func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redire
 	}
 
 	return result, nil
+}
+
+func (pstg *PostgreSQL) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
+	_, errInser := pstg.db.ExecContext(context.Background(), "UPDATE public.shorturl SET deleteflag = true WHERE short=$1 AND userid=$2",
+		data.ShortURL,
+		data.UserID)
+	return errInser
 }
 
 func (pstg *PostgreSQL) PingContext() error {

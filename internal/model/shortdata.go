@@ -5,4 +5,5 @@ type ShortData struct {
 	ShortURL    string `json:"shortURL"`
 	OriginalURL string `json:"originalURL"`
 	UserID      string `json:"userId"`
+	DeletedFlag bool   `json:"is_deleted"`
 }

@@ -40,6 +40,9 @@ func (h *Handlers) handlerError(err error) int {
 	if errors.Is(err, cerrors.ErrNewShortURL) {
 		statusCode = http.StatusConflict
 	}
+	if errors.Is(err, cerrors.ErrGetShortURLDelete) {
+		statusCode = http.StatusGone
+	}
 
 	log.Printf("error handling request: %v, status: %d", err, statusCode)
 	return statusCode
@@ -186,13 +189,15 @@ func (h *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	path := chi.URLParam(r, "id")
-	URL := h.srvShortURL.GetOriginalURL(ctx, path)
-	if URL != "" {
-		w.Header().Set("Location", URL)
-		w.WriteHeader(http.StatusTemporaryRedirect)
+	URL, err := h.srvShortURL.GetOriginalURL(ctx, path)
+
+	if err != nil {
+		w.WriteHeader(h.handlerError(err))
 		return
 	}
-	w.WriteHeader(http.StatusBadRequest)
+
+	w.Header().Set("Location", URL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func (h *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -227,7 +232,6 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	log.Printf("err AAA request: len: %d", len(res))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
@@ -270,7 +274,31 @@ func (h *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
 
 		handler.ServeHTTP(w, r)
 	})
+}
 
+func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
+	if h.srvAuthorization.IsNewUser() {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var (
+		request []string
+	)
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		w.WriteHeader(h.handlerError(err))
+		return
+
+	}
+
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	h.srvShortURL.DeleteOriginalURLs(ctx, h.srvAuthorization.GetCurrentUserID(), request)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func Router(handler *Handlers) chi.Router {
@@ -289,6 +317,7 @@ func Router(handler *Handlers) chi.Router {
 	router.Get("/*", http.HandlerFunc(handler.GetAll))
 	router.Get("/ping", http.HandlerFunc(handler.GetPing))
 	router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserShortenedURLs))
+	router.Delete("/api/user/urls", http.HandlerFunc(handler.DeleteUserShortenedURLs))
 
 	return router
 }

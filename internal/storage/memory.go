@@ -49,17 +49,23 @@ func (s *Memory) AddOriginalURLBatch(req []service.RequestBatch, redirectURL str
 	return resp, err
 }
 
-func (s *Memory) GetOriginalURL(ctx context.Context, shURL string) string {
-	original := ""
+func (s *Memory) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
+	var (
+		result model.ShortData
+		err    error = nil
+	)
+	err = cerrors.ErrGetShortURLNotFind
 	s.mapData.Range(func(key, value interface{}) bool {
 		mdl := value.(model.ShortData)
 		if shURL == mdl.ShortURL {
-			original = mdl.OriginalURL
+			result = mdl
+			err = nil
 			return false
 		}
 		return true
 	})
-	return original
+
+	return result, err
 }
 
 func (s *Memory) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
@@ -75,13 +81,30 @@ func (s *Memory) GetUserShortenedURLs(ctx context.Context, userID, redirectURL s
 	return result, nil
 }
 
+func (s *Memory) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
+	err := cerrors.ErrGetShortURLDelete
+	s.mapData.Range(func(key, value interface{}) bool {
+		if value.(model.ShortData).ShortURL == data.ShortURL {
+			if value.(model.ShortData).UserID == data.UserID {
+				shd := value.(model.ShortData)
+				shd.DeletedFlag = true
+				s.mapData.Store(key, shd)
+				err = nil
+			}
+			return false
+		}
+		return true
+	})
+	return err
+}
+
 func (s *Memory) getOrCreateShortData(hash, url, userID string) (*model.ShortData, bool) {
 	var shortData model.ShortData
 	value, exist := s.mapData.Load(hash)
 	if exist {
 		shortData = value.(model.ShortData)
 	} else {
-		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
+		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID, DeletedFlag: false}
 		s.mapData.Store(hash, shortData)
 	}
 	return &shortData, exist

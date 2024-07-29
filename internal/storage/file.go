@@ -81,14 +81,17 @@ func (s *File) AddOriginalURLBatch(req []service.RequestBatch, redirectURL strin
 	return resp, err
 }
 
-func (s *File) GetOriginalURL(ctx context.Context, shURL string) string {
+func (s *File) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
+	var result model.ShortData
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
 	shortData := s.find(ctxF, model.ShortData{UUID: "", OriginalURL: "", ShortURL: shURL})
-	if shortData == nil {
-		return ""
+	if shortData != nil {
+		return *shortData, nil
 	}
-	return shortData.OriginalURL
+
+	return result, cerrors.ErrGetShortURLNotFind
+
 }
 
 func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
@@ -114,6 +117,10 @@ func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL str
 
 }
 
+func (s *File) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
+	return nil
+}
+
 func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID string) (*model.ShortData, bool) {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
@@ -121,7 +128,7 @@ func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID strin
 	isNewShortData := false
 	if shortData == nil {
 		isNewShortData = true
-		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID}
+		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID, DeletedFlag: false}
 	}
 
 	return shortData, isNewShortData
@@ -129,23 +136,21 @@ func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID strin
 
 func (s *File) find(ctx context.Context, shortData model.ShortData) *model.ShortData {
 	newFile, _ := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	defer newFile.Close()
 	scanner := bufio.NewScanner(newFile)
 	for scanner.Scan() {
 		data := scanner.Bytes()
 		sd := &model.ShortData{}
 		if err := json.Unmarshal(data, sd); err != nil {
 			fmt.Printf("error Unmarshal file error: %s", err)
-			newFile.Close()
 			return nil
 		}
 
 		if shortData.ShortURL == sd.ShortURL || shortData.UUID == sd.UUID || shortData.OriginalURL == sd.OriginalURL {
-			newFile.Close()
 			return sd
 		}
 	}
 
-	newFile.Close()
 	return nil
 }
 
