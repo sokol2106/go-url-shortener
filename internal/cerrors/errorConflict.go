@@ -21,3 +21,5 @@ func (e *errorConflict) Unwrap() error {
 */
 
 var ErrNewShortURL = errors.New("conflict add original URL")
+var ErrGetShortURLDelete = errors.New("conflict delete original URL")
+var ErrGetShortURLNotFind = errors.New("conflict find original URL")
