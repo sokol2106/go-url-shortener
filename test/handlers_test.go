@@ -90,6 +90,7 @@ func TestShortURLPostBatch(t *testing.T) {
 	handler := handlers.NewHandlers(srvShortURL)
 
 	t.Run("Test POST Batch", func(t *testing.T) {
+		t.Parallel()
 		request := httptest.NewRequest("POST", "/", strings.NewReader(""+
 			"[{\"correlation_id\": \"1111\",\"original_url\": \"https://www.ozon.ru\"},"+
 			"{\"correlation_id\": \"2222\",\"original_url\": \"https://ya.ru\"}]"))

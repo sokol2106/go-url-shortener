@@ -7,8 +7,7 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/gzip"
-	"github.com/sokol2106/go-url-shortener/internal/logger"
+	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"io"
 	"log"
@@ -305,8 +304,8 @@ func Router(handler *Handlers) chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
-	router.Use(gzip.СompressionResponseRequest)
-	router.Use(logger.LoggingResponseRequest)
+	router.Use(middleware.СompressionResponseRequest)
+	router.Use(middleware.LoggingResponseRequest)
 	router.Use(handler.TokenResponseRequest)
 
 	// router

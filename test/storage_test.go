@@ -26,6 +26,7 @@ func TestStorageFile(t *testing.T) {
 	objectStorage := storage.NewFile(fileName)
 
 	t.Run("testStorageFile", func(t *testing.T) {
+		t.Parallel()
 		// Проверка добавление одной ссылки
 		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
 		defer cancel()
@@ -87,6 +88,7 @@ func TestStorageMemory(t *testing.T) {
 	original := "testOriginalURL"
 
 	t.Run("testStorageMemory", func(t *testing.T) {
+		t.Parallel()
 		// Проверка добавление одной ссылки
 		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
 		defer cancel()
