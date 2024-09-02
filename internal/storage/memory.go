@@ -87,8 +87,8 @@ func (s *Memory) DeleteOriginalURL(ctx context.Context, data service.RequestUser
 		safeData := value.(*model.SafeShortData).Load()
 		if safeData.ShortURL == data.ShortURL {
 			if safeData.UserID == data.UserID {
-				shd := safeData
-				shd.DeletedFlag = true
+				//shd := safeData
+				safeData.DeletedFlag = true
 				value.(*model.SafeShortData).Store(safeData)
 				//s.mapData.Store(key, shd)
 				err = nil
