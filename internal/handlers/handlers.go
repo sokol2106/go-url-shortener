@@ -7,8 +7,7 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/sokol2106/go-url-shortener/internal/cerrors"
-	"github.com/sokol2106/go-url-shortener/internal/gzip"
-	"github.com/sokol2106/go-url-shortener/internal/logger"
+	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"io"
 	"log"
@@ -17,6 +16,7 @@ import (
 
 type Handlers struct {
 	srvShortURL      *service.ShortURL
+	token            *middleware.Token
 	srvAuthorization *service.Authorization
 }
 
@@ -29,9 +29,12 @@ type ResponseJSON struct {
 }
 
 func NewHandlers(srv *service.ShortURL) *Handlers {
+	t := middleware.NewToken()
+	a := t.GetAuthorization()
 	return &Handlers{
 		srvShortURL:      srv,
-		srvAuthorization: service.NewAuthorization(),
+		token:            t,
+		srvAuthorization: a,
 	}
 }
 
@@ -237,45 +240,6 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 	w.Write(res)
 }
 
-func (h *Handlers) TokenResponseRequest(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("user")
-		// не существует или она не проходит проверку подлинности
-		if err != nil {
-			h.handlerError(err)
-			tkn, err := h.srvAuthorization.NewUserToken()
-			if err != nil {
-				h.handlerError(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			newCookie := http.Cookie{Name: "user", Value: tkn}
-			http.SetCookie(w, &newCookie)
-		} else {
-			// Без ошибок
-			userID, err := h.srvAuthorization.GetUserID(cookie.Value)
-			if err != nil {
-				h.handlerError(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			isUser := h.srvAuthorization.IsUser(userID)
-			if !isUser {
-				h.handlerError(err)
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			h.srvAuthorization.SetCurrentUserID(userID)
-			http.SetCookie(w, cookie)
-		}
-
-		handler.ServeHTTP(w, r)
-	})
-}
-
 func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
 	if h.srvAuthorization.IsNewUser() {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -305,9 +269,9 @@ func Router(handler *Handlers) chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
-	router.Use(gzip.СompressionResponseRequest)
-	router.Use(logger.LoggingResponseRequest)
-	router.Use(handler.TokenResponseRequest)
+	router.Use(middleware.СompressionResponseRequest)
+	router.Use(middleware.LoggingResponseRequest)
+	router.Use(handler.token.TokenResponseRequest)
 
 	// router
 	router.Post("/", http.HandlerFunc(handler.Post))

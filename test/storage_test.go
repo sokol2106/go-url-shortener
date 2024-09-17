@@ -26,6 +26,7 @@ func TestStorageFile(t *testing.T) {
 	objectStorage := storage.NewFile(fileName)
 
 	t.Run("testStorageFile", func(t *testing.T) {
+		t.Parallel()
 		// Проверка добавление одной ссылки
 		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
 		defer cancel()
@@ -87,6 +88,7 @@ func TestStorageMemory(t *testing.T) {
 	original := "testOriginalURL"
 
 	t.Run("testStorageMemory", func(t *testing.T) {
+		t.Parallel()
 		// Проверка добавление одной ссылки
 		ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Second)
 		defer cancel()
@@ -146,29 +148,27 @@ func TestStoragePostgresql(t *testing.T) {
 	*/
 }
 
-func TestPostgresqlMocks(t *testing.T) {
-	/*	ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
+func BenchmarkStorageFile(b *testing.B) {
 
-		db := mock_shorturl.NewMockDatabase(ctrl)
-		db.EXPECT().PingContext().Return(nil)
+	fileName := "testStorage.json"
+	str := storage.NewFile(fileName)
 
-		strg := memoryStorage.New()
-		sh := shorturl.New("http://localhost:8080", strg, db)
-		t.Run("Test ping mocks", func(t *testing.T) {
-			request := httptest.NewRequest("GET", "/", strings.NewReader(""))
-			response := httptest.NewRecorder()
-			sh.GetPing(response, request)
+	for i := 0; i < b.N; i++ {
+		sh, _ := str.AddOriginalURL(storage.RandText(20), storage.RandText(3))
+		str.GetOriginalURL(context.Background(), sh)
+	}
 
-			assert.Equal(t, http.StatusOK, response.Code)
+	str.Close()
+	os.Remove(fileName)
+}
 
-			db.EXPECT().PingContext().Return(errors.New("errr"))
-			request = httptest.NewRequest("GET", "/", strings.NewReader(""))
-			response = httptest.NewRecorder()
-			sh.GetPing(response, request)
+func BenchmarkStorageMemory(b *testing.B) {
+	str := storage.NewMemory()
 
-			assert.Equal(t, http.StatusInternalServerError, response.Code)
-		})
+	for i := 0; i < b.N; i++ {
+		sh, _ := str.AddOriginalURL(storage.RandText(20), storage.RandText(3))
+		str.GetOriginalURL(context.Background(), sh)
+	}
 
-	*/
+	str.Close()
 }

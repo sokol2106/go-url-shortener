@@ -1,4 +1,4 @@
-package gzip
+package middleware
 
 import (
 	"compress/gzip"
@@ -7,6 +7,16 @@ import (
 	"net/http"
 	"strings"
 )
+
+type compressResponseWriter struct {
+	rw http.ResponseWriter
+	zp *gzip.Writer
+}
+
+type compressReader struct {
+	r  io.ReadCloser
+	zr *gzip.Reader
+}
 
 // CompressResponseWriter
 
@@ -70,7 +80,6 @@ func СompressionResponseRequest(handler http.Handler) http.Handler {
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		if supportsGzip {
-
 			cw := newCompressResponseWriter(w)
 			response = cw
 			defer cw.Close()

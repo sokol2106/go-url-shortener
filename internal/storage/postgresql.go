@@ -17,14 +17,6 @@ import (
 	"time"
 )
 
-/*
-type DataBase interface {
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-	PingContext(ctx context.Context) error
-	Close()
-}
-*/
-
 type PostgreSQL struct {
 	db     *sql.DB
 	config string

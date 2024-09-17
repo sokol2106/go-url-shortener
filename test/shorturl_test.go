@@ -34,6 +34,7 @@ func TestServiceShortURL(t *testing.T) {
 	res2 := make([]service.ResponseUserShortenedURL, 0)
 
 	t.Run("testServiceShortURL", func(t *testing.T) {
+		t.Parallel()
 		mdl.ShortURL, err = srvShort.AddOriginalURL(mdl.OriginalURL, mdl.UserID)
 		require.NoError(t, err)
 		res1 = append(res1, service.ResponseUserShortenedURL{OriginalURL: mdl.OriginalURL, ShortURL: mdl.ShortURL})
@@ -88,6 +89,7 @@ func TestDeleteURLs(t *testing.T) {
 	deleteShortURLs := make([]string, 3)
 
 	t.Run("testDeleteURLs", func(t *testing.T) {
+		t.Parallel()
 		mdl.ShortURL, err = srvShort.AddOriginalURL(mdl.OriginalURL, mdl.UserID)
 		require.NoError(t, err)
 		deleteShortURLs[0] = mdl.ShortURL[1:]
@@ -119,4 +121,18 @@ func TestDeleteURLs(t *testing.T) {
 		assert.Equal(t, originalURL, mdl2.OriginalURL)
 
 	})
+}
+
+func BenchmarkServiceShortURL(b *testing.B) {
+	baseURL := "http://localhost/8080"
+	str := storage.NewMemory()
+	srvShort := service.NewShortURL(baseURL, str)
+	defer srvShort.Close()
+
+	for i := 0; i < b.N; i++ {
+		sh, _ := srvShort.AddOriginalURL(storage.RandText(20), storage.RandText(3))
+		srvShort.GetOriginalURL(context.Background(), sh)
+	}
+
+	str.Close()
 }
