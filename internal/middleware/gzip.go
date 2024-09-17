@@ -80,7 +80,6 @@ func СompressionResponseRequest(handler http.Handler) http.Handler {
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		if supportsGzip {
-
 			cw := newCompressResponseWriter(w)
 			response = cw
 			defer cw.Close()

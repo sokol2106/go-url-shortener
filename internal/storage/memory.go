@@ -127,14 +127,16 @@ func GenerateHash(url string) string {
 
 func RandText(size int) string {
 	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") // 52
-	b := make([]rune, size)
-	for i := range b {
+	var b []rune
+	//	b := make([]rune, size)
+	for i := 0; i < size; i++ {
 		resI, err := rand.Int(rand.Reader, big.NewInt(int64(len(letterRunes))))
 		if err != nil {
 			log.Printf("error rand.Int error: %s", err)
 			return ""
 		}
-		b[i] = letterRunes[resI.Int64()]
+		b = append(b, letterRunes[resI.Int64()])
+		//	b[i] = letterRunes[resI.Int64()]
 	}
 	return string(b)
 }

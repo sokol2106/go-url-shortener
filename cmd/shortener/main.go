@@ -4,6 +4,8 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/app"
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"log"
+	"net/http"
+	_ "net/http/pprof" // подключаем пакет pprof
 	"os"
 )
 
@@ -19,6 +21,11 @@ type params struct {
 }
 
 func main() {
+
+	go func() {
+		http.ListenAndServe("localhost:6060", nil) // запускаем pprof на 6060 порту
+	}()
+
 	p := params{
 		ServerAddress:   os.Getenv("SERVER_ADDRESS"),
 		BaseAddress:     os.Getenv("BASE_URL"),

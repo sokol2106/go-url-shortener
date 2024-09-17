@@ -147,3 +147,19 @@ func (suite *ServerTestSuite) TestGzipCompression() {
 func TestServerSuite(t *testing.T) {
 	suite.Run(t, new(ServerTestSuite))
 }
+
+func BenchmarkSuite(b *testing.B) {
+
+	suite := new(ServerTestSuite)
+	// Инициализация suite
+	suite.SetupSuite() // Используем SetupTest, как в тестах
+
+	for i := 0; i < b.N; i++ {
+		resp, _ := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader(storage.RandText(30)))
+		suite.cookie = resp.Cookies()[0]
+		resBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		http.Get(string(resBody))
+	}
+}
