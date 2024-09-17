@@ -160,6 +160,7 @@ func BenchmarkSuite(b *testing.B) {
 		resBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
-		http.Get(string(resBody))
+		resp, _ = http.Get(string(resBody))
+		resp.Body.Close()
 	}
 }
