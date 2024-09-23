@@ -62,7 +62,7 @@ func (ath *Authorization) IsNewUser() bool {
 }
 
 const tokenEXP = time.Hour * 24
-const secretKey = "supersecretkey"
+const secretKey = "supersecret"
 
 type Token struct {
 	jwt.RegisteredClaims
