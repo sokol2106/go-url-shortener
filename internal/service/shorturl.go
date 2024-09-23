@@ -12,6 +12,8 @@ import (
 	"sync"
 )
 
+// Storage представляет интерфейс для работы с хранилищем URL-ов.
+// Он включает методы для добавления, получения, удаления URL-ов и проверки доступности хранилища.
 type Storage interface {
 	AddOriginalURL(string, string) (string, error)
 	AddOriginalURLBatch([]RequestBatch, string, string) ([]ResponseBatch, error)
