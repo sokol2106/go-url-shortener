@@ -1,3 +1,4 @@
+// Package app предоставляет основные функции для инициализации и запуска приложения.
 package app
 
 import (
@@ -9,25 +10,31 @@ import (
 	"log"
 )
 
+// App представляет собой основную структуру приложения, содержащую компоненты
+// для работы с хранилищем данных и файловой системой.
 type App struct {
 	DB   *storage.PostgreSQL
 	File *storage.File
 }
 
+// Option представляет собой функцию, которая настраивает приложение.
 type Option func(*App)
 
+// WithDatabase создает опцию для установки PostgreSQL как хранилище данных приложения.
 func WithDatabase(dsn string) Option {
 	return func(a *App) {
 		a.DB = storage.NewPostgresql(dsn)
 	}
 }
 
+// WithFile создает опцию для установки файлового хранилища.
 func WithFile(filename string) Option {
 	return func(a *App) {
 		a.File = storage.NewFile(filename)
 	}
 }
 
+// initStorage инициализирует хранилище данных, используя PostgreSQL или файл.
 func initStorage(db *storage.PostgreSQL, file *storage.File) service.Storage {
 	if err := db.Connect(); err == nil {
 		err = db.Migrations("file://migrations/postgresql")
@@ -43,6 +50,8 @@ func initStorage(db *storage.PostgreSQL, file *storage.File) service.Storage {
 
 }
 
+// Run инициализирует приложение и запускает HTTP-сервер.
+// Принимает конфигурации для базового и сокращенного URL и опции для настройки хранилища данных.
 func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 
 	app := &App{}

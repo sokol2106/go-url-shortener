@@ -17,17 +17,24 @@ import (
 	"time"
 )
 
+// PostgreSQL представляет структуру для работы с базой данных PostgreSQL, реализующую интерфейс Storage.
+// db - объект БД, через который осуществляется соединение,
+// config - конфигурация подключения к БД.
 type PostgreSQL struct {
 	db     *sql.DB
 	config string
 }
 
+// NewPostgresql инициализирует объект PostgreSQL с заданной конфигурацией подключения.
+// Возвращает указатель на PostgreSQL.
 func NewPostgresql(cnf string) *PostgreSQL {
 	var pstg = PostgreSQL{}
 	pstg.config = cnf
 	return &pstg
 }
 
+// Connect устанавливает подключение к базе данных.
+// Если подключение успешно, возвращает nil, в противном случае возвращает ошибку.
 func (pstg *PostgreSQL) Connect() error {
 	var err error
 	pstg.db, err = sql.Open("pgx", pstg.config)
@@ -45,6 +52,8 @@ func (pstg *PostgreSQL) Connect() error {
 	return nil
 }
 
+// Migrations выполняет миграции базы данных PostgreSQL с использованием файлов из заданного пути.
+// Возвращает ошибку в случае неудачи.
 func (pstg *PostgreSQL) Migrations(pathFiles string) error {
 	driver, err := postgres.WithInstance(pstg.db, &postgres.Config{})
 	if err != nil {
@@ -66,6 +75,7 @@ func (pstg *PostgreSQL) Migrations(pathFiles string) error {
 	return nil
 }
 
+// AddOriginalURL добавляет новый оригинальный URL в базу данных.
 func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, error) {
 	var err error
 
@@ -102,6 +112,8 @@ func (pstg *PostgreSQL) AddOriginalURL(originalURL, userID string) (string, erro
 	return shortURL, err
 }
 
+// AddOriginalURLBatch добавляет несколько оригинальных URL-ов в базу данных в виде пакета.
+// Возвращает список сгенерированных коротких URL-ов или ошибку в случае неудачи.
 func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirectURL, userID string) ([]service.ResponseBatch, error) {
 	var err error
 	err = nil
@@ -119,6 +131,8 @@ func (pstg *PostgreSQL) AddOriginalURLBatch(req []service.RequestBatch, redirect
 	return resp, err
 }
 
+// GetOriginalURL возвращает оригинальный URL по-короткому URL.
+// Если короткий URL не найден, возвращает ошибку.
 func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
 	var (
 		result model.ShortData
@@ -139,6 +153,8 @@ func (pstg *PostgreSQL) GetOriginalURL(ctx context.Context, shURL string) (model
 	return result, nil
 }
 
+// GetUserShortenedURLs возвращает список всех сокращенных URL-ов для данного пользователя.
+// Формирует список ResponseUserShortenedURL для указанного пользователя.
 func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
 	result := make([]service.ResponseUserShortenedURL, 0)
 	var originalURL, shortURL string
@@ -166,6 +182,7 @@ func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redire
 	return result, nil
 }
 
+// DeleteOriginalURL устанавливает флаг удаления для короткого URL, принадлежащего пользователю.
 func (pstg *PostgreSQL) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
 	_, errInser := pstg.db.ExecContext(context.Background(), "UPDATE public.shorturl SET deleteflag = true WHERE short=$1 AND userid=$2",
 		data.ShortURL,
@@ -173,12 +190,15 @@ func (pstg *PostgreSQL) DeleteOriginalURL(ctx context.Context, data service.Requ
 	return errInser
 }
 
+// PingContext проверяет подключение к базе данных PostgreSQL.
+// Возвращает ошибку, если подключение не удалось.
 func (pstg *PostgreSQL) PingContext() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	return pstg.db.PingContext(ctx)
 }
 
+// Close закрывает соединение с базой данных PostgreSQL.
 func (pstg *PostgreSQL) Close() error {
 	if pstg.db != nil {
 		return pstg.db.Close()
