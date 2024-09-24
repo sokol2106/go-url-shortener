@@ -15,40 +15,62 @@ import (
 // Storage представляет интерфейс для работы с хранилищем URL-ов.
 // Он включает методы для добавления, получения, удаления URL-ов и проверки доступности хранилища.
 type Storage interface {
+	// AddOriginalURL добавляет новый оригинальный URL, связанный с userID.
+	// Возвращает сокращённый URL или ошибку.
 	AddOriginalURL(string, string) (string, error)
+
+	// AddOriginalURLBatch добавляет несколько оригинальных URL в пакетном режиме, привязанных к userID.
+	// Возвращает срез структур ResponseBatch с сокращёнными URL и корреляционными ID.
 	AddOriginalURLBatch([]RequestBatch, string, string) ([]ResponseBatch, error)
+
+	// GetOriginalURL возвращает оригинальный URL по сокращённому, если он существует.
+	// Возвращает ошибку, если URL удалён или не найден.
 	GetOriginalURL(context.Context, string) (model.ShortData, error)
+
+	// GetUserShortenedURLs возвращает список всех сокращённых URL, созданных пользователем с указанным userID.
 	GetUserShortenedURLs(context.Context, string, string) ([]ResponseUserShortenedURL, error)
+
+	// DeleteOriginalURL удаляет сокращённый URL по данным пользователя.
 	DeleteOriginalURL(context.Context, RequestUserShortenedURL) error
+
+	// PingContext проверяет доступность хранилища.
 	PingContext() error
+
+	// Close закрывает соединение с хранилищем.
 	Close() error
 }
 
+// ShortURL хранит информацию о пользователях системы и их текущем состоянии авторизации.
 type ShortURL struct {
-	RedirectURL string
-	storage     Storage
+	RedirectURL string  // базовый URL на который производится редирект
+	storage     Storage // хранилище URL-ов
 }
 
+// RequestBatch представляет структуру запроса для пакетного добавления URL.
 type RequestBatch struct {
-	CorrelationID string `json:"correlation_id"`
-	OriginalURL   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"` // уникальный ID для идентификации запроса
+	OriginalURL   string `json:"original_url"`   // оригинальный URL для сокращения
 }
 
+// ResponseBatch представляет структуру ответа для пакетного добавления URL.
 type ResponseBatch struct {
-	CorrelationID string `json:"correlation_id"`
-	ShortURL      string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"` // уникальный ID запроса
+	ShortURL      string `json:"short_url"`      // сокращённый URL
 }
 
+// ResponseUserShortenedURL содержит информацию о сокращённом URL и оригинальном URL пользователя.
 type ResponseUserShortenedURL struct {
-	OriginalURL string `json:"original_url"`
-	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"` // оригинальный URL
+	ShortURL    string `json:"short_url"`    // сокращённый URL
 }
 
+// RequestUserShortenedURL содержит информацию о пользователе и сокращённом URL для удаления.
 type RequestUserShortenedURL struct {
-	UserID   string `json:"user_id"`
-	ShortURL string `json:"short_url"`
+	UserID   string `json:"user_id"`   // ID пользователя
+	ShortURL string `json:"short_url"` // сокращённый URL для удаления
 }
 
+// NewShortURL создаёт новый экземпляр ShortURL с базовым URL для редиректов и хранилищем для управления URL.
 func NewShortURL(redirectURL string, strg Storage) *ShortURL {
 	s := new(ShortURL)
 	s.RedirectURL = redirectURL
@@ -56,19 +78,23 @@ func NewShortURL(redirectURL string, strg Storage) *ShortURL {
 	return s
 }
 
+// SetRedirectURL изменяет базовый URL для редиректа.
 func (s *ShortURL) SetRedirectURL(url string) {
 	s.RedirectURL = url
 }
 
+// AddOriginalURL добавляет оригинальный URL и возвращает полный сокращённый URL, используя базовый URL редиректа.
 func (s *ShortURL) AddOriginalURL(url, userID string) (string, error) {
 	res, err := s.storage.AddOriginalURL(url, userID)
 	return fmt.Sprintf("%s/%s", s.RedirectURL, res), err
 }
 
+// AddOriginalURLBatch добавляет несколько оригинальных URL-адресов в пакетном режиме для указанного пользователя.
 func (s *ShortURL) AddOriginalURLBatch(batch []RequestBatch, userID string) ([]ResponseBatch, error) {
 	return s.storage.AddOriginalURLBatch(batch, s.RedirectURL, userID)
 }
 
+// GetOriginalURL возвращает оригинальный URL по сокращённому. Если URL был удалён, возвращает ошибку.
 func (s *ShortURL) GetOriginalURL(ctx context.Context, shortURL string) (string, error) {
 	mdl, err := s.storage.GetOriginalURL(ctx, shortURL)
 	if err != nil {
@@ -82,6 +108,7 @@ func (s *ShortURL) GetOriginalURL(ctx context.Context, shortURL string) (string,
 	return mdl.OriginalURL, nil
 }
 
+// GetUserShortenedURLs возвращает список всех сокращённых URL пользователя в формате JSON.
 func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]byte, error) {
 	var res bytes.Buffer
 	ctx2, cancel := context.WithCancel(ctx)
@@ -104,21 +131,25 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 	return body, nil
 }
 
+// DeleteOriginalURLs удаляет список сокращённых URL-адресов для пользователя в асинхронном режиме с использованием горутин.
 func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) {
 	inCH := s.generatorDeleteShortURL(userID, shortURLs)
 	channels := s.funOut(inCH)
 	s.funIn(channels...)
 }
 
+// PingContext проверяет доступность хранилища.
 func (s *ShortURL) PingContext() error {
 	return s.storage.PingContext()
 }
 
+// Close закрывает соединение с хранилищем.
 func (s *ShortURL) Close() error {
 	err := s.storage.Close()
 	return err
 }
 
+// generatorDeleteShortURL создаёт канал, через который передаются URL для удаления.
 func (s *ShortURL) generatorDeleteShortURL(userID string, shortURLs []string) chan RequestUserShortenedURL {
 	inputCh := make(chan RequestUserShortenedURL)
 
@@ -133,6 +164,7 @@ func (s *ShortURL) generatorDeleteShortURL(userID string, shortURLs []string) ch
 	return inputCh
 }
 
+// deleteOriginalURL удаляет сокращённый URL из хранилища, используя данные, полученные из канала.
 func (s *ShortURL) deleteOriginalURL(inputCh chan RequestUserShortenedURL) chan error {
 	resultCh := make(chan error)
 
@@ -146,6 +178,8 @@ func (s *ShortURL) deleteOriginalURL(inputCh chan RequestUserShortenedURL) chan 
 	return resultCh
 }
 
+// funIn собирает результаты удаления URL-адресов в один финальный канал.
+// Использует WaitGroup для синхронизации завершения горутин.
 func (s *ShortURL) funIn(chs ...chan error) chan error {
 	finalCh := make(chan error)
 	var wg sync.WaitGroup
@@ -170,6 +204,7 @@ func (s *ShortURL) funIn(chs ...chan error) chan error {
 	return finalCh
 }
 
+// funOut создаёт и возвращает несколько каналов для асинхронного удаления URL-адресов.
 func (s *ShortURL) funOut(inCH chan RequestUserShortenedURL) []chan error {
 
 	numWorkers := 20
