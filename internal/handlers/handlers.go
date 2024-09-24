@@ -1,3 +1,6 @@
+// Package handlers предоставляет обработчики для HTTP-запросов, связанных с сокращением URL.
+// Он включает в себя методы для создания, получения и удаления сокращенных URL,
+// а также обработку запросов в формате JSON и пакетной обработки.
 package handlers
 
 import (
@@ -14,20 +17,24 @@ import (
 	"net/http"
 )
 
+// Handlers представляет собой структуру, содержащую сервисы для обработки URL и авторизации.
 type Handlers struct {
-	srvShortURL      *service.ShortURL
-	token            *middleware.Token
-	srvAuthorization *service.Authorization
+	srvShortURL      *service.ShortURL      // Сервис сокращения URL
+	token            *middleware.Token      // Токен авторизации
+	srvAuthorization *service.Authorization // Сервис авторизации
 }
 
+// RequestJSON представляет структуру запроса в формате JSON для создания сокращенного URL.
 type RequestJSON struct {
 	URL string `json:"url"`
 }
 
+// ResponseJSON представляет структуру ответа в формате JSON с сокращенным URL.
 type ResponseJSON struct {
 	Result string `json:"result"`
 }
 
+// NewHandlers создает новый экземпляр Handlers с переданным сервисом сокращения URL.
 func NewHandlers(srv *service.ShortURL) *Handlers {
 	t := middleware.NewToken()
 	a := t.GetAuthorization()
@@ -38,6 +45,7 @@ func NewHandlers(srv *service.ShortURL) *Handlers {
 	}
 }
 
+// handlerError обрабатывает ошибки и возвращает соответствующий код состояния HTTP.
 func (h *Handlers) handlerError(err error) int {
 	statusCode := http.StatusBadRequest
 	if errors.Is(err, cerrors.ErrNewShortURL) {
@@ -51,6 +59,7 @@ func (h *Handlers) handlerError(err error) int {
 	return statusCode
 }
 
+// Post обрабатывает POST-запрос для создания сокращенного URL.
 func (h *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	handlerStatus := http.StatusCreated
 	body, err := io.ReadAll(r.Body)
@@ -79,6 +88,7 @@ func (h *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(shortURL))
 }
 
+// PostJSON обрабатывает POST-запрос для создания сокращенного URL в формате JSON.
 func (h *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -135,6 +145,7 @@ func (h *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(resBody)
 }
 
+// PostBatch обрабатывает POST-запрос для пакетного создания сокращенных URL.
 func (h *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 	var (
 		requestBatch  []service.RequestBatch
@@ -188,6 +199,7 @@ func (h *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 	w.Write(bodyB)
 }
 
+// Get обрабатывает GET-запрос для получения оригинального URL по сокращенному ID.
 func (h *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -203,10 +215,13 @@ func (h *Handlers) Get(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// GetAll обрабатывает GET-запрос для получения всех сокращенных URL.
+// По умолчанию возвращает статус 400.
 func (h *Handlers) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
+// GetPing обрабатывает GET-запрос для проверки работоспособности сервиса.
 func (h *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
 	err := h.srvShortURL.PingContext()
 	if err != nil {
@@ -216,6 +231,7 @@ func (h *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetUserShortenedURLs обрабатывает GET-запрос для получения сокращенных URL текущего пользователя.
 func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
 	if h.srvAuthorization.IsNewUser() {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -240,6 +256,7 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 	w.Write(res)
 }
 
+// DeleteUserShortenedURLs обрабатывает DELETE-запрос для удаления сокращенных URL текущего пользователя.
 func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
 	if h.srvAuthorization.IsNewUser() {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -265,6 +282,7 @@ func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// Router создает маршрутизатор с заданными обработчиками и middleware.
 func Router(handler *Handlers) chi.Router {
 	router := chi.NewRouter()
 
