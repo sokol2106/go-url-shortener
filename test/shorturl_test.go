@@ -122,3 +122,17 @@ func TestDeleteURLs(t *testing.T) {
 
 	})
 }
+
+func BenchmarkServiceShortURL(b *testing.B) {
+	baseURL := "http://localhost/8080"
+	str := storage.NewMemory()
+	srvShort := service.NewShortURL(baseURL, str)
+	defer srvShort.Close()
+
+	for i := 0; i < b.N; i++ {
+		sh, _ := srvShort.AddOriginalURL(storage.RandText(20), storage.RandText(3))
+		srvShort.GetOriginalURL(context.Background(), sh)
+	}
+
+	str.Close()
+}

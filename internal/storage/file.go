@@ -1,3 +1,4 @@
+// Package storage предоставляет реализацию интерфейса хранилища URL-ов.
 package storage
 
 import (
@@ -13,16 +14,21 @@ import (
 	"time"
 )
 
+// File представляет структуру для работы с файлами, реализующую интерфейс Storage.
+// file - это открытый файл для чтения и записи данных, scanner и decoder используются для чтения данных,
+// encoder - для записи, data хранит считанные из файла данные.
 type File struct {
-	file          *os.File
-	scanner       *bufio.Scanner
-	decoder       *json.Decoder
-	encoder       *json.Encoder
-	data          []model.ShortData
-	fileName      string
-	isWriteEnable bool
+	file          *os.File          // открытый файл для работы с данными
+	scanner       *bufio.Scanner    // сканер для последовательного чтения файла
+	decoder       *json.Decoder     // декодер JSON для чтения данных из файла
+	encoder       *json.Encoder     // энкодер JSON для записи данных в файл
+	data          []model.ShortData // кеш данных о сокращённых URL
+	fileName      string            // имя файла для работы с URL
+	isWriteEnable bool              // флаг, указывающий, разрешена ли запись в файл
 }
 
+// NewFile открывает файл для работы с URL-ами или создаёт новый файл, если он не существует.
+// Возвращает указатель на созданную структуру File.
 func NewFile(filename string) *File {
 	resFile := File{}
 	resFile.isWriteEnable = false
@@ -45,6 +51,8 @@ func NewFile(filename string) *File {
 	return nil
 }
 
+// AddOriginalURL добавляет оригинальный URL и возвращает сгенерированный сокращённый URL.
+// Также сохраняет сокращённый URL в файл, если включена запись.
 func (s *File) AddOriginalURL(originalURL, userID string) (string, error) {
 	ctxF, cancelF := context.WithTimeout(context.Background(), 5000*time.Second)
 	defer cancelF()
@@ -64,6 +72,7 @@ func (s *File) AddOriginalURL(originalURL, userID string) (string, error) {
 	return shortData.ShortURL, err
 }
 
+// AddOriginalURLBatch добавляет список URL-ов в пакетном режиме и возвращает соответствующие сокращённые URL-ы.
 func (s *File) AddOriginalURLBatch(req []service.RequestBatch, redirectURL string, userID string) ([]service.ResponseBatch, error) {
 	var err error = nil
 	resp := make([]service.ResponseBatch, len(req))
@@ -81,6 +90,7 @@ func (s *File) AddOriginalURLBatch(req []service.RequestBatch, redirectURL strin
 	return resp, err
 }
 
+// GetOriginalURL ищет оригинальный URL по сокращённому. Если URL не найден, возвращает ошибку.
 func (s *File) GetOriginalURL(ctx context.Context, shURL string) (model.ShortData, error) {
 	var result model.ShortData
 	ctxF, cancelF := context.WithCancel(ctx)
@@ -94,6 +104,7 @@ func (s *File) GetOriginalURL(ctx context.Context, shURL string) (model.ShortDat
 
 }
 
+// GetUserShortenedURLs возвращает список сокращённых URL-ов пользователя, найденных в файле.
 func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL string) ([]service.ResponseUserShortenedURL, error) {
 	result := make([]service.ResponseUserShortenedURL, 0)
 	newFile, _ := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -115,10 +126,13 @@ func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL str
 	return result, nil
 }
 
+// DeleteOriginalURL не реализован. Возвращает nil.
 func (s *File) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
 	return nil
 }
 
+// getOrCreateShortData ищет данные о сокращённом URL или создаёт их, если они не найдены.
+// Возвращает найденные или созданные данные, а также флаг, указывающий, были ли данные новыми.
 func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID string) (*model.ShortData, bool) {
 	ctxF, cancelF := context.WithCancel(ctx)
 	defer cancelF()
@@ -132,6 +146,7 @@ func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID strin
 	return shortData, isNewShortData
 }
 
+// find ищет данные о сокращённом URL в файле на основе переданных параметров.
 func (s *File) find(ctx context.Context, shortData model.ShortData) *model.ShortData {
 	newFile, _ := os.OpenFile(s.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	defer newFile.Close()
@@ -152,10 +167,12 @@ func (s *File) find(ctx context.Context, shortData model.ShortData) *model.Short
 	return nil
 }
 
+// PingContext не реализован. Возвращает ошибку.
 func (s *File) PingContext() error {
 	return errors.New("ping FILE not yet implemented ")
 }
 
+// Close закрывает файл.
 func (s *File) Close() error {
 	return s.file.Close()
 }
