@@ -164,3 +164,37 @@ func BenchmarkSuite(b *testing.B) {
 		resp.Body.Close()
 	}
 }
+
+func BenchmarkHundredSuite(b *testing.B) {
+
+	suite := new(ServerTestSuite)
+	// Инициализация suite
+	suite.SetupSuite() // Используем SetupTest, как в тестах
+
+	for i := 0; i < b.N; i++ {
+		resp, _ := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader(storage.RandText(100)))
+		suite.cookie = resp.Cookies()[0]
+		resBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		resp, _ = http.Get(string(resBody))
+		resp.Body.Close()
+	}
+}
+
+func BenchmarkThousandSuite(b *testing.B) {
+
+	suite := new(ServerTestSuite)
+	// Инициализация suite
+	suite.SetupSuite() // Используем SetupTest, как в тестах
+
+	for i := 0; i < b.N; i++ {
+		resp, _ := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader(storage.RandText(1000)))
+		suite.cookie = resp.Cookies()[0]
+		resBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		resp, _ = http.Get(string(resBody))
+		resp.Body.Close()
+	}
+}

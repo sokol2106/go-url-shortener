@@ -46,6 +46,10 @@ func NewHandlers(srv *service.ShortURL) *Handlers {
 }
 
 // handlerError обрабатывает ошибки и возвращает соответствующий код состояния HTTP.
+// Следующие коды могут вернуться:
+// - 400 Bad Request: для всех прочих ошибок.
+// - 409 Conflict: если пытаетесь добавить уже существующий оригинальный URL.
+// - 410 Gone: если URL был помечен как удаленный.
 func (h *Handlers) handlerError(err error) int {
 	statusCode := http.StatusBadRequest
 	if errors.Is(err, cerrors.ErrNewShortURL) {
