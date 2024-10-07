@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/kisielk/errcheck/errcheck"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -13,21 +12,17 @@ import (
 )
 
 func main() {
+	// Определяем список анализаторов, которые будем использовать
 	mychecks := []*analysis.Analyzer{
-		NoOsExitAnalyzer,
-		printf.Analyzer,
-		shadow.Analyzer,
-		structtag.Analyzer,
-		errcheck.Analyzer,
-		shift.Analyzer,
+		NoOsExitAnalyzer,   // Собственный анализатор, запрещающий os.Exit
+		printf.Analyzer,    // Анализатор проверки правильности использования форматирования в printf
+		shadow.Analyzer,    // Анализатор, предупреждающий о затенении переменных
+		structtag.Analyzer, // Анализатор для проверки правильности тегов структур
+		errcheck.Analyzer,  // Анализатор, проверяющий необработанные ошибки
+		shift.Analyzer,     // Анализатор проверки правильности сдвигов битовых операций
 	}
 
-	for _, v := range staticcheck.Analyzers {
-		if v.Analyzer != nil {
-			fmt.Println(v.Analyzer.Name)
-		}
-	}
-
+	// Проходим по всем анализаторам из staticcheck и добавляем нужные анализаторы
 	for _, v := range staticcheck.Analyzers {
 		if v.Analyzer != nil && v.Analyzer.Name != "" {
 			if v.Analyzer.Name[:2] == "SA" {
@@ -48,6 +43,7 @@ func main() {
 		}
 	}
 
+	// Запускаем мультианализатор с собранным списком проверок
 	multichecker.Main(
 		mychecks...,
 	)
