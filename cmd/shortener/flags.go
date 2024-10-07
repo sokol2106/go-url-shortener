@@ -1,7 +1,10 @@
 // Package main предоставляет функции для парсинга флагов командной строки.
 package main
 
-import "flag"
+import (
+	"flag"
+	"fmt"
+)
 
 // ParseFlags разбирает флаги командной строки и обновляет параметры конфигурации.
 // Принимает указатель на структуру params, которая содержит конфигурационные параметры.
@@ -16,5 +19,14 @@ func ParseFlags(p *params) {
 	flag.StringVar(&p.BaseAddress, "b", p.BaseAddress, "base address of the resulting shortened URL")
 	flag.StringVar(&p.FileStoragePath, "f", p.FileStoragePath, "file storage path")
 	flag.StringVar(&p.DatabaseDSN, "d", p.DatabaseDSN, "data connection Database")
+
+	flag.StringVar(&buildVersion, "buildVersion", buildVersion, "version of the build ")
+	flag.StringVar(&buildDate, "buildDate", buildDate, "date when the build was created")
+	flag.StringVar(&buildCommit, "buildCommit", buildCommit, "commit hash of the build")
+
+	fmt.Println("Build version: ", buildVersion)
+	fmt.Println("Build date: ", buildDate)
+	fmt.Println("Build commit: ", buildCommit)
+
 	flag.Parse()
 }

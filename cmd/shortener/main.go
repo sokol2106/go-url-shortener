@@ -28,6 +28,15 @@ type params struct {
 	DatabaseDSN     string
 }
 
+// buildVersion версия сборки
+var buildVersion = "N/A"
+
+// buildDate дата сборки
+var buildDate = "N/A"
+
+// buildCommit комментарий сборки
+var buildCommit = "N/A"
+
 // main является основной точкой входа приложения.
 func main() {
 
