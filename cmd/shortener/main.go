@@ -28,6 +28,19 @@ type params struct {
 	DatabaseDSN     string
 }
 
+// BuildInfo представляет информацию о приложении
+type BuildInfo struct {
+	Version string // buildVersion версия сборки
+	Date    string // buildDate дата сборки
+	Commit  string // buildCommit комментарий сборки
+}
+
+var buildInfo = BuildInfo{
+	Version: "N/A",
+	Date:    "N/A",
+	Commit:  "N/A",
+}
+
 // main является основной точкой входа приложения.
 func main() {
 
@@ -52,7 +65,9 @@ func main() {
 	if p.FileStoragePath == "" {
 		p.FileStoragePath = СFileStoragePath
 	}
-	ParseFlags(&p)
+	ParseFlags(WithServerAddress(&p), WithBuildInfo())
+	printBuildInfo()
+
 	configServer, err := config.NewConfigURL(p.ServerAddress)
 	if err != nil {
 		log.Printf("Creating server config error: %s", err.Error())
