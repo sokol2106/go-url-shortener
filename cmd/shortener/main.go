@@ -26,6 +26,7 @@ type params struct {
 	BaseAddress     string
 	FileStoragePath string
 	DatabaseDSN     string
+	EnableHTTPS     string
 }
 
 // BuildInfo представляет информацию о приложении
@@ -55,6 +56,7 @@ func main() {
 		BaseAddress:     os.Getenv("BASE_URL"),
 		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
 		DatabaseDSN:     os.Getenv("DATABASE_DSN"),
+		EnableHTTPS:     os.Getenv("ENABLE_HTTPS"),
 	}
 	if p.ServerAddress == "" {
 		p.ServerAddress = CServerAddress

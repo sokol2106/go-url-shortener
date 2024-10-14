@@ -22,12 +22,20 @@ func NewServer(handler http.Handler, addr string) *Server {
 }
 
 // Start запускает HTTP-сервер. Сервер начинает слушать входящие запросы.
-func (s *Server) Start() error {
-	return s.httpServer.ListenAndServe()
+func (s *Server) Start(enableHTTPS string) error {
+	if enableHTTPS != "" {
+		return s.httpServer.ListenAndServe()
+	}
+
+	return s.httpServer.ListenAndServeTLS(s.CreateCRT())
 }
 
 // Stop останавливает HTTP-сервер с возможностью плавного завершения работы.
 // ctx - контекст, который может использоваться для задания тайм-аута на завершение работы сервера.
 func (s *Server) Stop(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
+}
+
+func (s *Server) CreateCRT() (string, string) {
+	return "", ""
 }

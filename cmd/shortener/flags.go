@@ -21,6 +21,7 @@ func WithServerAddress(p *params) Option {
 		flag.StringVar(&p.BaseAddress, "b", p.BaseAddress, "base address of the resulting shortened URL")
 		flag.StringVar(&p.FileStoragePath, "f", p.FileStoragePath, "file storage path")
 		flag.StringVar(&p.DatabaseDSN, "d", p.DatabaseDSN, "data connection Database")
+		flag.StringVar(&p.EnableHTTPS, "s", p.EnableHTTPS, "enable https")
 	}
 }
 
