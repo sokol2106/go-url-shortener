@@ -21,7 +21,7 @@ func TestConfig(t *testing.T) {
 	}
 
 	t.Run("testConfig", func(t *testing.T) {
-		cnf, err := config.NewConfigURL(testData.URL)
+		cnf, err := config.NewConfigURL(testData.URL, "")
 		require.NoError(t, err)
 
 		assert.Equal(t, testData.Port, cnf.Port())

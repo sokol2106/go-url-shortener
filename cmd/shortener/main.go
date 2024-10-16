@@ -26,6 +26,7 @@ type params struct {
 	BaseAddress     string
 	FileStoragePath string
 	DatabaseDSN     string
+	EnableHTTPS     string
 }
 
 // BuildInfo представляет информацию о приложении
@@ -55,6 +56,7 @@ func main() {
 		BaseAddress:     os.Getenv("BASE_URL"),
 		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
 		DatabaseDSN:     os.Getenv("DATABASE_DSN"),
+		EnableHTTPS:     os.Getenv("ENABLE_HTTPS"),
 	}
 	if p.ServerAddress == "" {
 		p.ServerAddress = CServerAddress
@@ -68,12 +70,12 @@ func main() {
 	ParseFlags(WithServerAddress(&p), WithBuildInfo())
 	printBuildInfo()
 
-	configServer, err := config.NewConfigURL(p.ServerAddress)
+	configServer, err := config.NewConfigURL(p.ServerAddress, p.EnableHTTPS)
 	if err != nil {
 		log.Printf("Creating server config error: %s", err.Error())
 		return
 	}
-	configBase, err := config.NewConfigURL(p.BaseAddress)
+	configBase, err := config.NewConfigURL(p.BaseAddress, "")
 	if err != nil {
 		log.Printf("Creating server config base address error: %s", err.Error())
 		return
