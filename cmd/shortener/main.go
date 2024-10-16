@@ -70,12 +70,12 @@ func main() {
 	ParseFlags(WithServerAddress(&p), WithBuildInfo())
 	printBuildInfo()
 
-	configServer, err := config.NewConfigURL(p.ServerAddress)
+	configServer, err := config.NewConfigURL(p.ServerAddress, p.EnableHTTPS)
 	if err != nil {
 		log.Printf("Creating server config error: %s", err.Error())
 		return
 	}
-	configBase, err := config.NewConfigURL(p.BaseAddress)
+	configBase, err := config.NewConfigURL(p.BaseAddress, "")
 	if err != nil {
 		log.Printf("Creating server config base address error: %s", err.Error())
 		return

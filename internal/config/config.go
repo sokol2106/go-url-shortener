@@ -11,13 +11,14 @@ import (
 
 // ConfigServer представляет конфигурацию сервера, включая хост и порт.
 type ConfigServer struct {
-	host string
-	port string
+	host      string
+	port      string
+	flagHTTPS string
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
 // Возвращает указатель на ConfigServer и ошибку, если парсинг URL не удался.
-func NewConfigURL(u string) (*ConfigServer, error) {
+func NewConfigURL(u string, s string) (*ConfigServer, error) {
 	var (
 		h string
 		p string
@@ -35,8 +36,9 @@ func NewConfigURL(u string) (*ConfigServer, error) {
 	}
 
 	return &ConfigServer{
-		host: h,
-		port: p,
+		host:      h,
+		port:      p,
+		flagHTTPS: s,
 	}, nil
 }
 
@@ -58,4 +60,9 @@ func (cs *ConfigServer) Addr() string {
 // URL возвращает полный URL сервера в формате "http://host:port".
 func (cs *ConfigServer) URL() string {
 	return fmt.Sprintf("http://%s:%s", cs.Host(), cs.Port())
+}
+
+// EnableHTTPS возвращает флаг включения HTTPS.
+func (cs *ConfigServer) EnableHTTPS() string {
+	return cs.flagHTTPS
 }

@@ -64,7 +64,7 @@ func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 	handler := handlers.NewHandlers(srvShortURL)
 
 	ser := server.NewServer(handlers.Router(handler), bsCnf.Addr())
-	err := ser.Start()
+	err := ser.Start(bsCnf.EnableHTTPS())
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
 	}
