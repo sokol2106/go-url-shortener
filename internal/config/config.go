@@ -12,7 +12,7 @@ import (
 const CServerAddress = "localhost:8080"
 
 // CBaseAddress - базовый адрес по умолчанию.
-const CBaseURL = "localhost:8080"
+const CBaseURL = "http://localhost:8080"
 
 // СFileStoragePath - путь к файлу хранения по умолчанию.
 const СFileStoragePath = "/tmp/short-url-db.json"
