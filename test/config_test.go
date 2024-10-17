@@ -15,7 +15,7 @@ func TestConfig(t *testing.T) {
 		EnableHTTPS     string
 	}{
 		ServerAddress:   "127.0.0.1:8080",
-		BaseURL:         "http://127.0.0.1",
+		BaseURL:         "http://localhost:9090",
 		FileStoragePath: "./test/",
 		DatabaseDsn:     "connect",
 		EnableHTTPS:     "true",
@@ -24,7 +24,7 @@ func TestConfig(t *testing.T) {
 	t.Run("testConfig", func(t *testing.T) {
 		cnf := config.NewConfigURL(
 			testData.ServerAddress,
-			testData.BaseURL,
+			"localhost:9090",
 			testData.FileStoragePath,
 			testData.DatabaseDsn,
 			testData.EnableHTTPS,
