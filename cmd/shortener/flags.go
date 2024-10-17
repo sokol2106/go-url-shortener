@@ -31,10 +31,10 @@ func WithServerAddress(cnf *config.ConfigServer) Option {
 		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
 
 		cnf.SetServerAddress(serverAddres).
-			SetBaseUrl(baseURL).
+			SetBaseURL(baseURL).
 			SetFileStoragePath(fileStoragePath).
 			SetDatabaseDsn(databaseDSN).
-			SetEnableHttps(enableHTTPS)
+			SetEnableHTTPS(enableHTTPS)
 	}
 }
 

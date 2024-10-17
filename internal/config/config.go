@@ -70,7 +70,7 @@ func (cs *ConfigServer) SetServerAddress(serverAddress string) *ConfigServer {
 }
 
 // SetBaseUrl задает базовый URL.
-func (cs *ConfigServer) SetBaseUrl(baseURL string) *ConfigServer {
+func (cs *ConfigServer) SetBaseURL(baseURL string) *ConfigServer {
 	cs.baseURL = baseURL
 	return cs
 }
@@ -88,7 +88,7 @@ func (cs *ConfigServer) SetDatabaseDsn(databaseDsn string) *ConfigServer {
 }
 
 // SetEnableHttps задает флаг включения HTTPS, принимает строку и преобразует её в bool.
-func (cs *ConfigServer) SetEnableHttps(enable string) *ConfigServer {
+func (cs *ConfigServer) SetEnableHTTPS(enable string) *ConfigServer {
 	enHTTPS, err := strconv.ParseBool(enable)
 	if err != nil {
 		enHTTPS = false

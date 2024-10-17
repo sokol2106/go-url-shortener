@@ -36,7 +36,7 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, testData.DatabaseDsn, cnf.DatabaseDsn())
 		assert.Equal(t, true, cnf.EnableHTTPS())
 
-		cnf.SetEnableHttps("")
+		cnf.SetEnableHTTPS("")
 
 		assert.Equal(t, false, cnf.EnableHTTPS())
 
