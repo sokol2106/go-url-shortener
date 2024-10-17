@@ -5,29 +5,10 @@ package main
 import (
 	"github.com/sokol2106/go-url-shortener/internal/app"
 	"github.com/sokol2106/go-url-shortener/internal/config"
-	"log"
 	"net/http"
 	_ "net/http/pprof" // подключаем пакет pprof
 	"os"
 )
-
-// CServerAddress - адрес сервера по умолчанию.
-const CServerAddress = "localhost:8080"
-
-// CBaseAddress - базовый адрес по умолчанию.
-const CBaseAddress = "localhost:8080"
-
-// СFileStoragePath - путь к файлу хранения по умолчанию.
-const СFileStoragePath = "/tmp/short-url-db.json"
-
-// params представляет параметры конфигурации для приложения.
-type params struct {
-	ServerAddress   string
-	BaseAddress     string
-	FileStoragePath string
-	DatabaseDSN     string
-	EnableHTTPS     string
-}
 
 // BuildInfo представляет информацию о приложении
 type BuildInfo struct {
@@ -50,37 +31,17 @@ func main() {
 		http.ListenAndServe("localhost:6060", nil) // запускаем pprof на 6060 порту
 	}()
 
-	// Получаем параметры конфигурации из переменных окружения
-	p := params{
-		ServerAddress:   os.Getenv("SERVER_ADDRESS"),
-		BaseAddress:     os.Getenv("BASE_URL"),
-		FileStoragePath: os.Getenv("FILE_STORAGE_PATH"),
-		DatabaseDSN:     os.Getenv("DATABASE_DSN"),
-		EnableHTTPS:     os.Getenv("ENABLE_HTTPS"),
-	}
-	if p.ServerAddress == "" {
-		p.ServerAddress = CServerAddress
-	}
-	if p.BaseAddress == "" {
-		p.BaseAddress = CBaseAddress
-	}
-	if p.FileStoragePath == "" {
-		p.FileStoragePath = СFileStoragePath
-	}
-	ParseFlags(WithServerAddress(&p), WithBuildInfo())
+	cnf := config.NewConfigURL(
+		os.Getenv("SERVER_ADDRESS"),
+		os.Getenv("BASE_URL"),
+		os.Getenv("FILE_STORAGE_PATH"),
+		os.Getenv("DATABASE_DSN"),
+		os.Getenv("ENABLE_HTTPS"),
+	)
+
+	ParseFlags(WithServerAddress(cnf), WithBuildInfo())
 	printBuildInfo()
 
-	configServer, err := config.NewConfigURL(p.ServerAddress, p.EnableHTTPS)
-	if err != nil {
-		log.Printf("Creating server config error: %s", err.Error())
-		return
-	}
-	configBase, err := config.NewConfigURL(p.BaseAddress, "")
-	if err != nil {
-		log.Printf("Creating server config base address error: %s", err.Error())
-		return
-	}
-
 	// Запускаем приложение с заданными параметрами конфигурации
-	app.Run(configServer, configBase, app.WithDatabase(p.DatabaseDSN), app.WithFile(p.FileStoragePath))
+	app.Run(cnf, app.WithDatabase(cnf.DatabaseDsn()), app.WithFile(cnf.FileStoragePath()))
 }

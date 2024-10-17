@@ -3,30 +3,42 @@ package test
 import (
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestConfig(t *testing.T) {
 	testData := struct {
-		URL  string
-		Addr string
-		Port string
-		Host string
+		ServerAddress   string
+		BaseUrl         string
+		FileStoragePath string
+		DatabaseDsn     string
+		EnableHttps     string
 	}{
-		URL:  "http://127.0.0.1:8080",
-		Addr: "127.0.0.1:8080",
-		Port: "8080",
-		Host: "127.0.0.1",
+		ServerAddress:   "127.0.0.1:8080",
+		BaseUrl:         "http://127.0.0.1",
+		FileStoragePath: "./test/",
+		DatabaseDsn:     "connect",
+		EnableHttps:     "true",
 	}
 
 	t.Run("testConfig", func(t *testing.T) {
-		cnf, err := config.NewConfigURL(testData.URL, "")
-		require.NoError(t, err)
+		cnf := config.NewConfigURL(
+			testData.ServerAddress,
+			testData.BaseUrl,
+			testData.FileStoragePath,
+			testData.DatabaseDsn,
+			testData.EnableHttps,
+		)
 
-		assert.Equal(t, testData.Port, cnf.Port())
-		assert.Equal(t, testData.Addr, cnf.Addr())
-		assert.Equal(t, testData.Host, cnf.Host())
-		assert.Equal(t, testData.URL, cnf.URL())
+		assert.Equal(t, testData.ServerAddress, cnf.ServerAddress())
+		assert.Equal(t, testData.BaseUrl, cnf.BaseUrl())
+		assert.Equal(t, testData.FileStoragePath, cnf.FileStoragePath())
+		assert.Equal(t, testData.DatabaseDsn, cnf.DatabaseDsn())
+		assert.Equal(t, true, cnf.EnableHTTPS())
+
+		cnf.SetEnableHttps("")
+
+		assert.Equal(t, false, cnf.EnableHTTPS())
+
 	})
 }

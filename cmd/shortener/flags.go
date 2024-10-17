@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/config"
 )
 
 // Option представляет собой функциональную опцию, которая используется для
@@ -15,13 +16,25 @@ type Option func()
 // путь к файлам хранилища и строку подключения к базе данных.
 //
 // Принимает указатель на структуру params, где будут сохраняться значения.
-func WithServerAddress(p *params) Option {
+func WithServerAddress(cnf *config.ConfigServer) Option {
 	return func() {
-		flag.StringVar(&p.ServerAddress, "a", p.ServerAddress, "address to run server")
-		flag.StringVar(&p.BaseAddress, "b", p.BaseAddress, "base address of the resulting shortened URL")
-		flag.StringVar(&p.FileStoragePath, "f", p.FileStoragePath, "file storage path")
-		flag.StringVar(&p.DatabaseDSN, "d", p.DatabaseDSN, "data connection Database")
-		flag.StringVar(&p.EnableHTTPS, "s", p.EnableHTTPS, "enable https")
+		serverAddres := cnf.ServerAddress()
+		baseURL := cnf.BaseUrl()
+		fileStoragePath := cnf.FileStoragePath()
+		databaseDSN := cnf.DatabaseDsn()
+		enableHTTPS := fmt.Sprintf("%v", cnf.EnableHTTPS())
+
+		flag.StringVar(&serverAddres, "a", serverAddres, "address to run server")
+		flag.StringVar(&baseURL, "b", baseURL, "base address of the resulting shortened URL")
+		flag.StringVar(&fileStoragePath, "f", fileStoragePath, "file storage path")
+		flag.StringVar(&databaseDSN, "d", databaseDSN, "data connection Database")
+		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
+
+		cnf.SetServerAddress(serverAddres).
+			SetBaseUrl(baseURL).
+			SetFileStoragePath(fileStoragePath).
+			SetDatabaseDsn(databaseDSN).
+			SetEnableHttps(enableHTTPS)
 	}
 }
 
