@@ -25,18 +25,18 @@ const СFileStoragePath = "/tmp/short-url-db.json"
 // "enable_https": true аналог переменной окружения ENABLE_HTTPS или флага -s
 type ConfigServer struct {
 	serverAddress   string
-	baseUrl         string
+	baseURL         string
 	fileStoragePath string
 	databaseDsn     string
-	enableHttps     bool
+	enableHTTPS     bool
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
 // Возвращает указатель на ConfigServer и ошибку, если парсинг URL не удался.
-func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enableHttps string) *ConfigServer {
-	enHttps, err := strconv.ParseBool(enableHttps)
+func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable string) *ConfigServer {
+	enHTTPS, err := strconv.ParseBool(enable)
 	if err != nil {
-		enHttps = false
+		enHTTPS = false
 	}
 
 	if serverAddress == "" {
@@ -51,10 +51,10 @@ func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enableHt
 
 	return &ConfigServer{
 		serverAddress:   serverAddress,
-		baseUrl:         baseURL,
+		baseURL:         baseURL,
 		fileStoragePath: fileStoragePath,
 		databaseDsn:     databaseDsn,
-		enableHttps:     enHttps,
+		enableHTTPS:     enHTTPS,
 	}
 }
 
@@ -70,8 +70,8 @@ func (cs *ConfigServer) SetServerAddress(serverAddress string) *ConfigServer {
 }
 
 // SetBaseUrl задает базовый URL.
-func (cs *ConfigServer) SetBaseUrl(baseUrl string) *ConfigServer {
-	cs.baseUrl = baseUrl
+func (cs *ConfigServer) SetBaseUrl(baseURL string) *ConfigServer {
+	cs.baseURL = baseURL
 	return cs
 }
 
@@ -88,12 +88,12 @@ func (cs *ConfigServer) SetDatabaseDsn(databaseDsn string) *ConfigServer {
 }
 
 // SetEnableHttps задает флаг включения HTTPS, принимает строку и преобразует её в bool.
-func (cs *ConfigServer) SetEnableHttps(enableHttps string) *ConfigServer {
-	enHttps, err := strconv.ParseBool(enableHttps)
+func (cs *ConfigServer) SetEnableHttps(enable string) *ConfigServer {
+	enHTTPS, err := strconv.ParseBool(enable)
 	if err != nil {
-		enHttps = false
+		enHTTPS = false
 	}
-	cs.enableHttps = enHttps
+	cs.enableHTTPS = enHTTPS
 	return cs
 }
 
@@ -104,7 +104,7 @@ func (cs *ConfigServer) ServerAddress() string {
 
 // GetServerURL возвращает полный URL сервера
 func (cs *ConfigServer) ServerURL() string {
-	if cs.enableHttps {
+	if cs.enableHTTPS {
 		return fmt.Sprintf("https://%s", cs.serverAddress)
 	}
 	return fmt.Sprintf("https://%s", cs.serverAddress)
@@ -112,12 +112,12 @@ func (cs *ConfigServer) ServerURL() string {
 
 // EnableHTTPS возвращает флаг включения HTTPS.
 func (cs *ConfigServer) EnableHTTPS() bool {
-	return cs.enableHttps
+	return cs.enableHTTPS
 }
 
 // BaseUrl возвращает базовый URL
-func (cs *ConfigServer) BaseUrl() string {
-	return cs.baseUrl
+func (cs *ConfigServer) BaseURL() string {
+	return cs.baseURL
 }
 
 // DatabaseDsn параметр подключения к БД

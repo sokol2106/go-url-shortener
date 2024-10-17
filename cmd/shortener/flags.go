@@ -19,7 +19,7 @@ type Option func()
 func WithServerAddress(cnf *config.ConfigServer) Option {
 	return func() {
 		serverAddres := cnf.ServerAddress()
-		baseURL := cnf.BaseUrl()
+		baseURL := cnf.BaseURL()
 		fileStoragePath := cnf.FileStoragePath()
 		databaseDSN := cnf.DatabaseDsn()
 		enableHTTPS := fmt.Sprintf("%v", cnf.EnableHTTPS())
