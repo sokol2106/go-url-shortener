@@ -32,8 +32,8 @@ func NewServer(handler http.Handler, addr string) *Server {
 }
 
 // Start запускает HTTP-сервер. Сервер начинает слушать входящие запросы.
-func (s *Server) Start(enableHTTPS string) error {
-	if enableHTTPS != "" {
+func (s *Server) Start(enableHTTPS bool) error {
+	if enableHTTPS {
 		return s.httpServer.ListenAndServeTLS(s.CreateCRT())
 	}
 	return s.httpServer.ListenAndServe()
