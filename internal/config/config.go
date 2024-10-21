@@ -71,6 +71,7 @@ func (cs *ConfigServer) SetEnableHTTPS(enable string) *ConfigServer {
 	return cs
 }
 
+// LoadFileConfig загружает файл конфигурации и обрабатывает его.
 func (cs *ConfigServer) LoadFileConfig(filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {

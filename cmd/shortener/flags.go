@@ -30,6 +30,7 @@ func WithServerAddress(cnf *config.ConfigServer) Option {
 	}
 }
 
+// WithFileConfig переопределяет файл конфигурации из флага командной строки.
 func WithFileConfig(fileConfig *string) {
 	flag.StringVar(fileConfig, "c", *fileConfig, "file config")
 }
