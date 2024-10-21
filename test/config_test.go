@@ -33,7 +33,7 @@ func TestConfig(t *testing.T) {
 		assert.Equal(t, testData.ServerAddress, cnf.ServerAddress)
 		assert.Equal(t, testData.BaseURL, cnf.BaseURL)
 		assert.Equal(t, testData.FileStoragePath, cnf.FileStoragePath)
-		assert.Equal(t, testData.DatabaseDsn, cnf.DatabaseDsn)
+		assert.Equal(t, testData.DatabaseDsn, cnf.DatabaseDSN)
 		assert.Equal(t, true, cnf.EnableHTTPS)
 
 		cnf.SetEnableHTTPS("")

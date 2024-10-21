@@ -4,7 +4,10 @@
 package config
 
 import (
-	"fmt"
+	"encoding/json"
+	"io"
+	"log"
+	"os"
 	"strconv"
 )
 
@@ -24,11 +27,11 @@ const СFileStoragePath = "/tmp/short-url-db.json"
 // "database_dsn": "", аналог переменной окружения DATABASE_DSN или флага -d
 // "enable_https": true аналог переменной окружения ENABLE_HTTPS или флага -s
 type ConfigServer struct {
-	ServerAddress   string
-	BaseURL         string
-	FileStoragePath string
-	DatabaseDsn     string
-	EnableHTTPS     bool
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDSN     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
@@ -49,16 +52,11 @@ func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable s
 		fileStoragePath = СFileStoragePath
 	}
 
-	//	urlParse, err := url.Parse(baseURL)
-	//if err != nil {
-	//		return nil
-	//	}
-
 	return &ConfigServer{
 		ServerAddress:   serverAddress,
-		BaseURL:         baseURL, //fmt.Sprintf("http://%s:%s", urlParse.Scheme, urlParse.Opaque),
+		BaseURL:         baseURL,
 		FileStoragePath: fileStoragePath,
-		DatabaseDsn:     databaseDsn,
+		DatabaseDSN:     databaseDsn,
 		EnableHTTPS:     enHTTPS,
 	}
 }
@@ -73,18 +71,29 @@ func (cs *ConfigServer) SetEnableHTTPS(enable string) *ConfigServer {
 	return cs
 }
 
-// GetServerURL возвращает полный URL сервера
-func (cs *ConfigServer) ServerURL() string {
-	if cs.EnableHTTPS {
-		return fmt.Sprintf("https://%s", cs.ServerAddress)
+func (cs *ConfigServer) LoadFileConfig(filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
 	}
-	return fmt.Sprintf("https://%s", cs.ServerAddress)
-}
+	defer file.Close()
 
-// GetServerURL возвращает полный URL сервера
-func (cs *ConfigServer) GetServerURL() string {
-	if cs.EnableHTTPS {
-		return fmt.Sprintf("https://%s", cs.ServerAddress)
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return fmt.Sprintf("https://%s", cs.ServerAddress)
+
+	var cnf ConfigServer
+
+	err = json.Unmarshal(data, cnf)
+	if err != nil {
+		return err
+	}
+
+	cs.ServerAddress = cnf.ServerAddress
+	cs.BaseURL = cnf.BaseURL
+	cs.FileStoragePath = cnf.FileStoragePath
+	cs.DatabaseDSN = cnf.DatabaseDSN
+	cs.EnableHTTPS = cnf.EnableHTTPS
+	return nil
 }

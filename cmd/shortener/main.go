@@ -5,6 +5,7 @@ package main
 import (
 	"github.com/sokol2106/go-url-shortener/internal/app"
 	"github.com/sokol2106/go-url-shortener/internal/config"
+	"log"
 	"net/http"
 	_ "net/http/pprof" // подключаем пакет pprof
 	"os"
@@ -42,6 +43,13 @@ func main() {
 	ParseFlags(WithServerAddress(cnf), WithBuildInfo())
 	printBuildInfo()
 
+	fileConfig := os.Getenv("CONFIG")
+	WithFileConfig(&fileConfig)
+	err := cnf.LoadFileConfig(fileConfig)
+	if err != nil {
+		log.Printf("Load file config: %s", err)
+	}
+
 	// Запускаем приложение с заданными параметрами конфигурации
-	app.Run(cnf, app.WithDatabase(cnf.DatabaseDsn), app.WithFile(cnf.FileStoragePath))
+	app.Run(cnf, app.WithDatabase(cnf.DatabaseDSN), app.WithFile(cnf.FileStoragePath))
 }
