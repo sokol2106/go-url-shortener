@@ -13,7 +13,7 @@ import (
 const CServerAddress = "localhost:8080"
 
 // CBaseAddress - базовый адрес по умолчанию.
-const CBaseURL = "localhost:8080"
+const CBaseURL = "http://localhost:8080"
 
 // СFileStoragePath - путь к файлу хранения по умолчанию.
 const СFileStoragePath = "/tmp/short-url-db.json"
@@ -50,14 +50,14 @@ func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable s
 		fileStoragePath = СFileStoragePath
 	}
 
-	urlParse, err := url.Parse(baseURL)
-	if err != nil {
-		return nil
-	}
+	//	urlParse, err := url.Parse(baseURL)
+	//if err != nil {
+	//		return nil
+	//	}
 
 	return &ConfigServer{
 		serverAddress:   serverAddress,
-		baseURL:         fmt.Sprintf("http://%s:%s", urlParse.Scheme, urlParse.Opaque),
+		baseURL:         baseURL, //fmt.Sprintf("http://%s:%s", urlParse.Scheme, urlParse.Opaque),
 		fileStoragePath: fileStoragePath,
 		databaseDsn:     databaseDsn,
 		enableHTTPS:     enHTTPS,
