@@ -85,7 +85,7 @@ func (cs *ConfigServer) LoadFileConfig(filePath string) error {
 
 	var cnf ConfigServer
 
-	err = json.Unmarshal(data, cnf)
+	err = json.Unmarshal(data, &cnf)
 	if err != nil {
 		return err
 	}
