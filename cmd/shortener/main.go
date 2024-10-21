@@ -43,5 +43,5 @@ func main() {
 	printBuildInfo()
 
 	// Запускаем приложение с заданными параметрами конфигурации
-	app.Run(cnf, app.WithDatabase(cnf.DatabaseDsn()), app.WithFile(cnf.FileStoragePath()))
+	app.Run(cnf, app.WithDatabase(cnf.DatabaseDsn), app.WithFile(cnf.FileStoragePath))
 }

@@ -60,11 +60,11 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 	}
 
 	objStorage := initStorage(app.DB, app.File)
-	srvShortURL := service.NewShortURL(cnf.BaseURL(), objStorage)
+	srvShortURL := service.NewShortURL(cnf.BaseURL, objStorage)
 	handler := handlers.NewHandlers(srvShortURL)
 
-	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress())
-	err := ser.Start(cnf.EnableHTTPS())
+	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
+	err := ser.Start(cnf.EnableHTTPS)
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
 	}

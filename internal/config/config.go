@@ -5,7 +5,6 @@ package config
 
 import (
 	"fmt"
-	"net/url"
 	"strconv"
 )
 
@@ -25,11 +24,11 @@ const СFileStoragePath = "/tmp/short-url-db.json"
 // "database_dsn": "", аналог переменной окружения DATABASE_DSN или флага -d
 // "enable_https": true аналог переменной окружения ENABLE_HTTPS или флага -s
 type ConfigServer struct {
-	serverAddress   string
-	baseURL         string
-	fileStoragePath string
-	databaseDsn     string
-	enableHTTPS     bool
+	ServerAddress   string
+	BaseURL         string
+	FileStoragePath string
+	DatabaseDsn     string
+	EnableHTTPS     bool
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
@@ -56,52 +55,12 @@ func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable s
 	//	}
 
 	return &ConfigServer{
-		serverAddress:   serverAddress,
-		baseURL:         baseURL, //fmt.Sprintf("http://%s:%s", urlParse.Scheme, urlParse.Opaque),
-		fileStoragePath: fileStoragePath,
-		databaseDsn:     databaseDsn,
-		enableHTTPS:     enHTTPS,
+		ServerAddress:   serverAddress,
+		BaseURL:         baseURL, //fmt.Sprintf("http://%s:%s", urlParse.Scheme, urlParse.Opaque),
+		FileStoragePath: fileStoragePath,
+		DatabaseDsn:     databaseDsn,
+		EnableHTTPS:     enHTTPS,
 	}
-}
-
-// NewConfig создает новый экземпляр ConfigServer с пустыми полями.
-func NewConfig() *ConfigServer {
-	return &ConfigServer{}
-}
-
-// SetServerAddress задает адрес сервера
-func (cs *ConfigServer) SetServerAddress(serverAddress string) *ConfigServer {
-	cs.serverAddress = serverAddress
-	return cs
-}
-
-// SetBaseUrl задает базовый URL.
-func (cs *ConfigServer) SetBaseURL(baseURL string) *ConfigServer {
-	cs.baseURL = baseURL
-	return cs
-}
-
-// SetBaseUrl задает базовый адрес.
-func (cs *ConfigServer) SetBaseAddress(baseAddress string) *ConfigServer {
-	urlParse, err := url.Parse(baseAddress)
-	if err != nil {
-		return nil
-	}
-
-	cs.baseURL = fmt.Sprintf("http://%s:%s", urlParse.Scheme, urlParse.Opaque)
-	return cs
-}
-
-// SetFileStoragePath задает путь к файлу хранилища.
-func (cs *ConfigServer) SetFileStoragePath(fileStoragePath string) *ConfigServer {
-	cs.fileStoragePath = fileStoragePath
-	return cs
-}
-
-// SetDatabaseDsn задает строку подключения к базе данных.
-func (cs *ConfigServer) SetDatabaseDsn(databaseDsn string) *ConfigServer {
-	cs.databaseDsn = databaseDsn
-	return cs
 }
 
 // SetEnableHttps задает флаг включения HTTPS, принимает строку и преобразует её в bool.
@@ -110,39 +69,22 @@ func (cs *ConfigServer) SetEnableHTTPS(enable string) *ConfigServer {
 	if err != nil {
 		enHTTPS = false
 	}
-	cs.enableHTTPS = enHTTPS
+	cs.EnableHTTPS = enHTTPS
 	return cs
-}
-
-// GetServerAddress возвращает адрес сервера в формате "host:port".
-func (cs *ConfigServer) ServerAddress() string {
-	return cs.serverAddress
 }
 
 // GetServerURL возвращает полный URL сервера
 func (cs *ConfigServer) ServerURL() string {
-	if cs.enableHTTPS {
-		return fmt.Sprintf("https://%s", cs.serverAddress)
+	if cs.EnableHTTPS {
+		return fmt.Sprintf("https://%s", cs.ServerAddress)
 	}
-	return fmt.Sprintf("https://%s", cs.serverAddress)
+	return fmt.Sprintf("https://%s", cs.ServerAddress)
 }
 
-// EnableHTTPS возвращает флаг включения HTTPS.
-func (cs *ConfigServer) EnableHTTPS() bool {
-	return cs.enableHTTPS
-}
-
-// BaseUrl возвращает базовый URL
-func (cs *ConfigServer) BaseURL() string {
-	return cs.baseURL
-}
-
-// DatabaseDsn параметр подключения к БД
-func (cs *ConfigServer) DatabaseDsn() string {
-	return cs.databaseDsn
-}
-
-// FileStoragePath возвращает путь к файлу для сохранения
-func (cs *ConfigServer) FileStoragePath() string {
-	return cs.fileStoragePath
+// GetServerURL возвращает полный URL сервера
+func (cs *ConfigServer) GetServerURL() string {
+	if cs.EnableHTTPS {
+		return fmt.Sprintf("https://%s", cs.ServerAddress)
+	}
+	return fmt.Sprintf("https://%s", cs.ServerAddress)
 }

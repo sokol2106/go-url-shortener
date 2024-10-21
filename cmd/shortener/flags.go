@@ -18,23 +18,15 @@ type Option func()
 // Принимает указатель на структуру params, где будут сохраняться значения.
 func WithServerAddress(cnf *config.ConfigServer) Option {
 	return func() {
-		serverAddres := cnf.ServerAddress()
-		baseURL := cnf.BaseURL()
-		fileStoragePath := cnf.FileStoragePath()
-		databaseDSN := cnf.DatabaseDsn()
-		enableHTTPS := fmt.Sprintf("%v", cnf.EnableHTTPS())
+		enableHTTPS := fmt.Sprintf("%v", cnf.EnableHTTPS)
 
-		flag.StringVar(&serverAddres, "a", serverAddres, "address to run server")
-		flag.StringVar(&baseURL, "b", baseURL, "base address of the resulting shortened URL")
-		flag.StringVar(&fileStoragePath, "f", fileStoragePath, "file storage path")
-		flag.StringVar(&databaseDSN, "d", databaseDSN, "data connection Database")
+		flag.StringVar(&cnf.ServerAddress, "a", cnf.ServerAddress, "address to run server")
+		flag.StringVar(&cnf.BaseURL, "b", cnf.BaseURL, "base address of the resulting shortened URL")
+		flag.StringVar(&cnf.FileStoragePath, "f", cnf.FileStoragePath, "file storage path")
+		flag.StringVar(&cnf.DatabaseDsn, "d", cnf.DatabaseDsn, "data connection Database")
 		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
 
-		cnf.SetServerAddress(serverAddres).
-			SetBaseURL(baseURL).
-			SetFileStoragePath(fileStoragePath).
-			SetDatabaseDsn(databaseDSN).
-			SetEnableHTTPS(enableHTTPS)
+		cnf.SetEnableHTTPS(enableHTTPS)
 	}
 }
 
