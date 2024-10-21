@@ -2,12 +2,17 @@
 package app
 
 import (
+	"context"
+	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/handlers"
 	"github.com/sokol2106/go-url-shortener/internal/server"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 // App представляет собой основную структуру приложения, содержащую компоненты
@@ -64,8 +69,31 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 	handler := handlers.NewHandlers(srvShortURL)
 
 	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
+
+	idleConnsClosed := make(chan struct{})
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	go func() {
+		<-stop
+		if err := ser.Stop(context.Background()); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+
+		if err := objStorage.Close(); err != nil {
+			log.Printf("Object storage close: %v", err)
+		}
+
+		log.Println("Signal shutdown")
+		close(idleConnsClosed)
+	}()
+
 	err := ser.Start(cnf.EnableHTTPS)
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
 	}
+
+	<-idleConnsClosed
+	fmt.Println("Server Shutdown gracefully")
+
 }
