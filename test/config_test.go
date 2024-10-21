@@ -24,7 +24,7 @@ func TestConfig(t *testing.T) {
 	t.Run("testConfig", func(t *testing.T) {
 		cnf := config.NewConfigURL(
 			testData.ServerAddress,
-			"localhost:9090",
+			"http://localhost:9090",
 			testData.FileStoragePath,
 			testData.DatabaseDsn,
 			testData.EnableHTTPS,
