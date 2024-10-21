@@ -4,65 +4,97 @@
 package config
 
 import (
-	"fmt"
-	"net"
-	"net/url"
+	"encoding/json"
+	"io"
+	"log"
+	"os"
+	"strconv"
 )
 
+// CServerAddress - адрес сервера по умолчанию.
+const CServerAddress = "localhost:8080"
+
+// CBaseAddress - базовый адрес по умолчанию.
+const CBaseURL = "http://localhost:8080"
+
+// СFileStoragePath - путь к файлу хранения по умолчанию.
+const СFileStoragePath = "/tmp/short-url-db.json"
+
 // ConfigServer представляет конфигурацию сервера, включая хост и порт.
+// "server_address": "localhost:8080", аналог переменной окружения SERVER_ADDRESS или флага -a
+// "base_url": "http://localhost", аналог переменной окружения BASE_URL или флага -b
+// "file_storage_path": "/path/to/file.db", аналог переменной окружения FILE_STORAGE_PATH или флага -f
+// "database_dsn": "", аналог переменной окружения DATABASE_DSN или флага -d
+// "enable_https": true аналог переменной окружения ENABLE_HTTPS или флага -s
 type ConfigServer struct {
-	host      string
-	port      string
-	flagHTTPS string
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
+	DatabaseDSN     string `json:"database_dsn"`
+	EnableHTTPS     bool   `json:"enable_https"`
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
 // Возвращает указатель на ConfigServer и ошибку, если парсинг URL не удался.
-func NewConfigURL(u string, s string) (*ConfigServer, error) {
-	var (
-		h string
-		p string
-	)
-	urlParse, err := url.Parse(u)
+func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable string) *ConfigServer {
+	enHTTPS, err := strconv.ParseBool(enable)
 	if err != nil {
-		return nil, fmt.Errorf("parsing URL error: url: %s , err: %s", u, err)
+		enHTTPS = false
 	}
 
-	h = urlParse.Scheme
-	p = urlParse.Opaque
-
-	if (urlParse.Scheme == "http" || urlParse.Scheme == "https") && urlParse.Host != "" {
-		h, p, _ = net.SplitHostPort(urlParse.Host)
+	if serverAddress == "" {
+		serverAddress = CServerAddress
+	}
+	if baseURL == "" {
+		baseURL = CBaseURL
+	}
+	if fileStoragePath == "" {
+		fileStoragePath = СFileStoragePath
 	}
 
 	return &ConfigServer{
-		host:      h,
-		port:      p,
-		flagHTTPS: s,
-	}, nil
+		ServerAddress:   serverAddress,
+		BaseURL:         baseURL,
+		FileStoragePath: fileStoragePath,
+		DatabaseDSN:     databaseDsn,
+		EnableHTTPS:     enHTTPS,
+	}
 }
 
-// Host возвращает хост сервера.
-func (cs *ConfigServer) Host() string {
-	return cs.host
+// SetEnableHttps задает флаг включения HTTPS, принимает строку и преобразует её в bool.
+func (cs *ConfigServer) SetEnableHTTPS(enable string) *ConfigServer {
+	enHTTPS, err := strconv.ParseBool(enable)
+	if err != nil {
+		enHTTPS = false
+	}
+	cs.EnableHTTPS = enHTTPS
+	return cs
 }
 
-// Port возвращает порт сервера.
-func (cs *ConfigServer) Port() string {
-	return cs.port
-}
+// LoadFileConfig загружает файл конфигурации и обрабатывает его.
+func (cs *ConfigServer) LoadFileConfig(filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-// Addr возвращает адрес сервера в формате "host:port".
-func (cs *ConfigServer) Addr() string {
-	return fmt.Sprintf("%s:%s", cs.Host(), cs.Port())
-}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// URL возвращает полный URL сервера в формате "http://host:port".
-func (cs *ConfigServer) URL() string {
-	return fmt.Sprintf("http://%s:%s", cs.Host(), cs.Port())
-}
+	var cnf ConfigServer
 
-// EnableHTTPS возвращает флаг включения HTTPS.
-func (cs *ConfigServer) EnableHTTPS() string {
-	return cs.flagHTTPS
+	err = json.Unmarshal(data, &cnf)
+	if err != nil {
+		return err
+	}
+
+	cs.ServerAddress = cnf.ServerAddress
+	cs.BaseURL = cnf.BaseURL
+	cs.FileStoragePath = cnf.FileStoragePath
+	cs.DatabaseDSN = cnf.DatabaseDSN
+	cs.EnableHTTPS = cnf.EnableHTTPS
+	return nil
 }

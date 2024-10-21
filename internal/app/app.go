@@ -52,7 +52,7 @@ func initStorage(db *storage.PostgreSQL, file *storage.File) service.Storage {
 
 // Run инициализирует приложение и запускает HTTP-сервер.
 // Принимает конфигурации для базового и сокращенного URL и опции для настройки хранилища данных.
-func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
+func Run(cnf *config.ConfigServer, opts ...Option) {
 
 	app := &App{}
 	for _, opt := range opts {
@@ -60,11 +60,11 @@ func Run(bsCnf, shCnf *config.ConfigServer, opts ...Option) {
 	}
 
 	objStorage := initStorage(app.DB, app.File)
-	srvShortURL := service.NewShortURL(shCnf.URL(), objStorage)
+	srvShortURL := service.NewShortURL(cnf.BaseURL, objStorage)
 	handler := handlers.NewHandlers(srvShortURL)
 
-	ser := server.NewServer(handlers.Router(handler), bsCnf.Addr())
-	err := ser.Start(bsCnf.EnableHTTPS())
+	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
+	err := ser.Start(cnf.EnableHTTPS)
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
 	}

@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/sokol2106/go-url-shortener/internal/config"
 )
 
 // Option представляет собой функциональную опцию, которая используется для
@@ -15,14 +16,23 @@ type Option func()
 // путь к файлам хранилища и строку подключения к базе данных.
 //
 // Принимает указатель на структуру params, где будут сохраняться значения.
-func WithServerAddress(p *params) Option {
+func WithServerAddress(cnf *config.ConfigServer) Option {
 	return func() {
-		flag.StringVar(&p.ServerAddress, "a", p.ServerAddress, "address to run server")
-		flag.StringVar(&p.BaseAddress, "b", p.BaseAddress, "base address of the resulting shortened URL")
-		flag.StringVar(&p.FileStoragePath, "f", p.FileStoragePath, "file storage path")
-		flag.StringVar(&p.DatabaseDSN, "d", p.DatabaseDSN, "data connection Database")
-		flag.StringVar(&p.EnableHTTPS, "s", p.EnableHTTPS, "enable https")
+		enableHTTPS := fmt.Sprintf("%v", cnf.EnableHTTPS)
+
+		flag.StringVar(&cnf.ServerAddress, "a", cnf.ServerAddress, "address to run server")
+		flag.StringVar(&cnf.BaseURL, "b", cnf.BaseURL, "base address of the resulting shortened URL")
+		flag.StringVar(&cnf.FileStoragePath, "f", cnf.FileStoragePath, "file storage path")
+		flag.StringVar(&cnf.DatabaseDSN, "d", cnf.DatabaseDSN, "data connection Database")
+		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
+
+		cnf.SetEnableHTTPS(enableHTTPS)
 	}
+}
+
+// WithFileConfig переопределяет файл конфигурации из флага командной строки.
+func WithFileConfig(fileConfig *string) {
+	flag.StringVar(fileConfig, "c", *fileConfig, "file config")
 }
 
 // WithBuildInfo создает опцию для задания информации о сборке приложения.
