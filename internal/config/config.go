@@ -77,7 +77,13 @@ func (cs *ConfigServer) SetServerAddress(serverAddress string) *ConfigServer {
 
 // SetBaseUrl задает базовый URL.
 func (cs *ConfigServer) SetBaseURL(baseURL string) *ConfigServer {
-	urlParse, err := url.Parse(baseURL)
+	cs.baseURL = baseURL
+	return cs
+}
+
+// SetBaseUrl задает базовый адрес.
+func (cs *ConfigServer) SetBaseAddress(baseAddress string) *ConfigServer {
+	urlParse, err := url.Parse(baseAddress)
 	if err != nil {
 		return nil
 	}
