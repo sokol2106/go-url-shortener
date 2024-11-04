@@ -15,7 +15,7 @@ import (
 const CServerAddress = "localhost:8080"
 
 // CBaseAddress - базовый адрес по умолчанию.
-const CBaseURL = "http://localhost:8080"
+const DefaultBaseURL = "http://localhost:8080"
 
 // СFileStoragePath - путь к файлу хранения по умолчанию.
 const СFileStoragePath = "/tmp/short-url-db.json"
@@ -28,15 +28,16 @@ const СFileStoragePath = "/tmp/short-url-db.json"
 // "enable_https": true аналог переменной окружения ENABLE_HTTPS или флага -s
 type ConfigServer struct {
 	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
+	DefaultBaseURL  string `json:"default_base_url"`
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
 // Возвращает указатель на ConfigServer и ошибку, если парсинг URL не удался.
-func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable string) *ConfigServer {
+func NewConfigURL(serverAddress, defaultBaseURL, fileStoragePath, databaseDsn, enable, trustedSubnet string) *ConfigServer {
 	enHTTPS, err := strconv.ParseBool(enable)
 	if err != nil {
 		enHTTPS = false
@@ -45,8 +46,8 @@ func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable s
 	if serverAddress == "" {
 		serverAddress = CServerAddress
 	}
-	if baseURL == "" {
-		baseURL = CBaseURL
+	if defaultBaseURL == "" {
+		defaultBaseURL = DefaultBaseURL
 	}
 	if fileStoragePath == "" {
 		fileStoragePath = СFileStoragePath
@@ -54,10 +55,11 @@ func NewConfigURL(serverAddress, baseURL, fileStoragePath, databaseDsn, enable s
 
 	return &ConfigServer{
 		ServerAddress:   serverAddress,
-		BaseURL:         baseURL,
+		DefaultBaseURL:  defaultBaseURL,
 		FileStoragePath: fileStoragePath,
 		DatabaseDSN:     databaseDsn,
 		EnableHTTPS:     enHTTPS,
+		TrustedSubnet:   trustedSubnet,
 	}
 }
 
@@ -92,9 +94,10 @@ func (cs *ConfigServer) LoadFileConfig(filePath string) error {
 	}
 
 	cs.ServerAddress = cnf.ServerAddress
-	cs.BaseURL = cnf.BaseURL
+	cs.DefaultBaseURL = cnf.DefaultBaseURL
 	cs.FileStoragePath = cnf.FileStoragePath
 	cs.DatabaseDSN = cnf.DatabaseDSN
 	cs.EnableHTTPS = cnf.EnableHTTPS
+	cs.TrustedSubnet = cnf.TrustedSubnet
 	return nil
 }

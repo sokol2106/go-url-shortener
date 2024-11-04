@@ -21,10 +21,11 @@ func WithServerAddress(cnf *config.ConfigServer) Option {
 		enableHTTPS := fmt.Sprintf("%v", cnf.EnableHTTPS)
 
 		flag.StringVar(&cnf.ServerAddress, "a", cnf.ServerAddress, "address to run server")
-		flag.StringVar(&cnf.BaseURL, "b", cnf.BaseURL, "base address of the resulting shortened URL")
+		flag.StringVar(&cnf.DefaultBaseURL, "b", cnf.DefaultBaseURL, "base address of the resulting shortened URL")
 		flag.StringVar(&cnf.FileStoragePath, "f", cnf.FileStoragePath, "file storage path")
 		flag.StringVar(&cnf.DatabaseDSN, "d", cnf.DatabaseDSN, "data connection Database")
 		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
+		flag.StringVar(&cnf.TrustedSubnet, "t", cnf.TrustedSubnet, "trusted subnet")
 
 		cnf.SetEnableHTTPS(enableHTTPS)
 	}

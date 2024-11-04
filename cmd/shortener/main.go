@@ -38,6 +38,7 @@ func main() {
 		os.Getenv("FILE_STORAGE_PATH"),
 		os.Getenv("DATABASE_DSN"),
 		os.Getenv("ENABLE_HTTPS"),
+		os.Getenv("TRUSTED_SUBNET"),
 	)
 
 	ParseFlags(WithServerAddress(cnf), WithBuildInfo())

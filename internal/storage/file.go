@@ -11,6 +11,7 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/model"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"os"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type File struct {
 	data          []model.ShortData // кеш данных о сокращённых URL
 	fileName      string            // имя файла для работы с URL
 	isWriteEnable bool              // флаг, указывающий, разрешена ли запись в файл
+	countURLs     int64             // количество сокращённых URL в сервисе
 }
 
 // NewFile открывает файл для работы с URL-ами или создаёт новый файл, если он не существует.
@@ -39,12 +41,24 @@ func NewFile(filename string) *File {
 			return nil
 		}
 
+		scanner := bufio.NewScanner(newFile)
+		count := 0
+
+		for scanner.Scan() {
+			count++
+		}
+
+		if err := scanner.Err(); err != nil {
+			return nil
+		}
+
 		resFile.fileName = filename
 		resFile.isWriteEnable = true
 		resFile.encoder = json.NewEncoder(newFile)
 		resFile.decoder = json.NewDecoder(newFile)
 		resFile.file = newFile
 		resFile.scanner = bufio.NewScanner(newFile)
+		resFile.countURLs = int64(count)
 		return &resFile
 	}
 
@@ -126,6 +140,11 @@ func (s *File) GetUserShortenedURLs(ctx context.Context, userID, redirectURL str
 	return result, nil
 }
 
+// GetURLs возвращает количество сокращённых URL в сервисе
+func (s *File) GetURLs() int {
+	return int(atomic.LoadInt64(&s.countURLs))
+}
+
 // DeleteOriginalURL не реализован. Возвращает nil.
 func (s *File) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
 	return nil
@@ -141,6 +160,7 @@ func (s *File) getOrCreateShortData(ctx context.Context, hash, url, userID strin
 	if shortData == nil {
 		isNewShortData = true
 		shortData = &model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID, DeletedFlag: false}
+		atomic.AddInt64(&s.countURLs, 1)
 	}
 
 	return shortData, isNewShortData

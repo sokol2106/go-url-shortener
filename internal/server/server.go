@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -34,7 +33,11 @@ func NewServer(handler http.Handler, addr string) *Server {
 // Start запускает HTTP-сервер. Сервер начинает слушать входящие запросы.
 func (s *Server) Start(enableHTTPS bool) error {
 	if enableHTTPS {
-		return s.httpServer.ListenAndServeTLS(s.CreateCRT())
+		cert, key, err := s.CreateCRT()
+		if err != nil {
+			return err
+		}
+		return s.httpServer.ListenAndServeTLS(cert, key)
 	}
 	return s.httpServer.ListenAndServe()
 }
@@ -46,8 +49,7 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 // CreateCRT создаёт сертификат и ключ для HTTPS сервера.
-func (s *Server) CreateCRT() (string, string) {
-
+func (s *Server) CreateCRT() (string, string, error) {
 	// cert сертификат сервера для https
 	cert := &x509.Certificate{
 		SerialNumber: big.NewInt(1658),
@@ -64,13 +66,13 @@ func (s *Server) CreateCRT() (string, string) {
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
 	// создаём сертификат x.509
 	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &privateKey.PublicKey, privateKey)
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
 	var certPEM bytes.Buffer
@@ -91,15 +93,15 @@ func (s *Server) CreateCRT() (string, string) {
 	// Сохраняем сертификат в файл
 	err = os.WriteFile(certPath, certPEM.Bytes(), 0644)
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
 	// Сохраняем ключ в файл
 	err = os.WriteFile(keyPath, privateKeyPEM.Bytes(), 0600) // Даем права только на чтение для владельца
 	if err != nil {
-		log.Fatal(err)
+		return "", "", err
 	}
 
 	// Возвращаем пути к файлам сертификата и ключа
-	return certPath, keyPath
+	return certPath, keyPath, nil
 }

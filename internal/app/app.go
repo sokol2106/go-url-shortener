@@ -65,8 +65,8 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 	}
 
 	objStorage := initStorage(app.DB, app.File)
-	srvShortURL := service.NewShortURL(cnf.BaseURL, objStorage)
-	handler := handlers.NewHandlers(srvShortURL)
+	srvShortURL := service.NewShortURL(cnf.DefaultBaseURL, objStorage)
+	handler := handlers.NewHandlers(srvShortURL, cnf.TrustedSubnet)
 
 	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
 

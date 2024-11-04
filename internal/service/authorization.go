@@ -9,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type Authorization struct {
 	users         sync.Map // пользователи системы, где ключ — UserID, а значение — информация о пользователе
 	currentUserID string   // ID текущего авторизованного пользователя
 	isNewUser     bool     // флаг, указывающий, что это новый пользователь
+	countUsers    int64    // количество пользователей
 }
 
 // NewAuthorization создает новый объект Authorization и возвращает указатель на него.
@@ -25,7 +27,9 @@ type Authorization struct {
 //
 //	authorization := service.NewAuthorization()
 func NewAuthorization() *Authorization {
-	return &Authorization{}
+	return &Authorization{
+		countUsers: 0,
+	}
 }
 
 // NewUserToken создает новый JWT-токен для нового пользователя.
@@ -50,6 +54,8 @@ func (ath *Authorization) NewUserToken() (string, error) {
 
 	ath.currentUserID = userID.String()
 	ath.isNewUser = true
+
+	atomic.AddInt64(&ath.countUsers, 1)
 	return token, err
 }
 
@@ -75,6 +81,11 @@ func (ath *Authorization) GetUserID(token string) (string, error) {
 func (ath *Authorization) SetCurrentUserID(userID string) {
 	ath.isNewUser = false
 	ath.currentUserID = userID
+}
+
+// GetUsers возвращает количество пользователей
+func (ath *Authorization) GetUsers() int {
+	return int(atomic.LoadInt64(&ath.countUsers))
 }
 
 // GetCurrentUserID возвращает UserID текущего авторизованного пользователя.

@@ -56,6 +56,9 @@ func TestStorageFile(t *testing.T) {
 		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
 		assert.Equal(t, resp, resp2)
 
+		urls := objectStorage.GetURLs()
+		assert.Equal(t, urls, 3)
+
 		err = objectStorage.Close()
 		require.NoError(t, err)
 
@@ -67,6 +70,9 @@ func TestStorageFile(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, req[0].OriginalURL, original0.OriginalURL)
 		assert.Equal(t, req[1].OriginalURL, original1.OriginalURL)
+
+		urls = objectStorage.GetURLs()
+		assert.Equal(t, urls, 3)
 
 		err = objectStorage.Close()
 		require.NoError(t, err)
@@ -117,6 +123,9 @@ func TestStorageMemory(t *testing.T) {
 		resp2, err := objectStorage.AddOriginalURLBatch(req, "", "123456")
 		assert.ErrorIs(t, cerrors.ErrNewShortURL, err)
 		assert.Equal(t, resp, resp2)
+
+		urls := objectStorage.GetURLs()
+		assert.Equal(t, urls, 3)
 
 		err = objectStorage.Close()
 		require.NoError(t, err)
