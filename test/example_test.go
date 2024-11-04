@@ -15,7 +15,7 @@ import (
 func newServer() *httptest.Server {
 	objectStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	sh := handlers.NewHandlers(srvShortURL)
+	sh := handlers.NewHandlers(srvShortURL, "")
 	server := httptest.NewServer(handlers.Router(sh))
 	return server
 }

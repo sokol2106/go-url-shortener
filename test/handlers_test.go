@@ -28,7 +28,7 @@ func TestFileReadWrite(t *testing.T) {
 	defer objectStorage.Close()
 
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	sh := handlers.NewHandlers(srvShortURL)
+	sh := handlers.NewHandlers(srvShortURL, "")
 	server := httptest.NewServer(handlers.Router(sh))
 
 	tests := []struct {
@@ -87,7 +87,7 @@ func TestFileReadWrite(t *testing.T) {
 func TestShortURLPostBatch(t *testing.T) {
 	objectStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	handler := handlers.NewHandlers(srvShortURL)
+	handler := handlers.NewHandlers(srvShortURL, "")
 
 	t.Run("Test POST Batch", func(t *testing.T) {
 		t.Parallel()
@@ -105,7 +105,7 @@ func TestShortURLPostBatch(t *testing.T) {
 func TestGetUserShortenedURLs(t *testing.T) {
 	objectStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	sh := handlers.NewHandlers(srvShortURL)
+	sh := handlers.NewHandlers(srvShortURL, "")
 	server := httptest.NewServer(handlers.Router(sh))
 
 	defer server.Close()

@@ -30,6 +30,9 @@ type Storage interface {
 	// GetUserShortenedURLs возвращает список всех сокращённых URL, созданных пользователем с указанным userID.
 	GetUserShortenedURLs(context.Context, string, string) ([]ResponseUserShortenedURL, error)
 
+	// GetURLs возвращает количество сокращённых URL в сервисе
+	GetURLs() int
+
 	// DeleteOriginalURL удаляет сокращённый URL по данным пользователя.
 	DeleteOriginalURL(context.Context, RequestUserShortenedURL) error
 
@@ -129,6 +132,11 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 	}
 
 	return body, nil
+}
+
+// GetURLs возвращает количество сокращённых URL в сервисе
+func (s *ShortURL) GetURLs() int {
+	return s.storage.GetURLs()
 }
 
 // DeleteOriginalURLs удаляет список сокращённых URL-адресов для пользователя в асинхронном режиме с использованием горутин.

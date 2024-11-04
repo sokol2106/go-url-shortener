@@ -14,19 +14,23 @@ import (
 	"log"
 	"math/big"
 	"sync"
+	"sync/atomic"
 )
 
 // Memory представляет структуру для работы со структурой Map, реализующую интерфейс Storage.
 // mapData - это хранилище оригинальных и сокращённых URL,
 // encoder - для записи, data хранит считанные из файла данные.
 type Memory struct {
-	mapData sync.Map      // потокобезопасная структура для хранения URL
-	encoder *json.Encoder // энкодер JSON для записи данных в файл
+	mapData   sync.Map      // потокобезопасная структура для хранения URL
+	encoder   *json.Encoder // энкодер JSON для записи данных в файл
+	countURLs int64         // количество сокращённых URL в сервисе
 }
 
 // NewMemory создаёт объект Memory и возвращает ссылку на него
 func NewMemory() *Memory {
-	return &Memory{}
+	return &Memory{
+		countURLs: 0,
+	}
 }
 
 // AddOriginalURL добавляет оригинальный URL и возвращает сгенерированный сокращённый URL.
@@ -89,6 +93,11 @@ func (s *Memory) GetUserShortenedURLs(ctx context.Context, userID, redirectURL s
 	return result, nil
 }
 
+// GetURLs возвращает количество сокращённых URL в сервисе
+func (s *Memory) GetURLs() int {
+	return int(atomic.LoadInt64(&s.countURLs))
+}
+
 // DeleteOriginalURL не реализован. Возвращает nil.
 func (s *Memory) DeleteOriginalURL(ctx context.Context, data service.RequestUserShortenedURL) error {
 	err := cerrors.ErrGetShortURLDelete
@@ -119,6 +128,7 @@ func (s *Memory) getOrCreateShortData(hash, url, userID string) (*model.ShortDat
 	} else {
 		shortData = model.ShortData{UUID: hash, ShortURL: RandText(8), OriginalURL: url, UserID: userID, DeletedFlag: false}
 		s.mapData.Store(hash, model.NewSafeShortData(shortData))
+		atomic.AddInt64(&s.countURLs, 1)
 	}
 	return &shortData, exist
 }

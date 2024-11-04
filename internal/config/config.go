@@ -32,11 +32,12 @@ type ConfigServer struct {
 	FileStoragePath string `json:"file_storage_path"`
 	DatabaseDSN     string `json:"database_dsn"`
 	EnableHTTPS     bool   `json:"enable_https"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 // NewConfigURL создает новый экземпляр ConfigServer на основе переданного URL.
 // Возвращает указатель на ConfigServer и ошибку, если парсинг URL не удался.
-func NewConfigURL(serverAddress, defaultBaseURL, fileStoragePath, databaseDsn, enable string) *ConfigServer {
+func NewConfigURL(serverAddress, defaultBaseURL, fileStoragePath, databaseDsn, enable, trustedSubnet string) *ConfigServer {
 	enHTTPS, err := strconv.ParseBool(enable)
 	if err != nil {
 		enHTTPS = false
@@ -58,6 +59,7 @@ func NewConfigURL(serverAddress, defaultBaseURL, fileStoragePath, databaseDsn, e
 		FileStoragePath: fileStoragePath,
 		DatabaseDSN:     databaseDsn,
 		EnableHTTPS:     enHTTPS,
+		TrustedSubnet:   trustedSubnet,
 	}
 }
 
@@ -96,5 +98,6 @@ func (cs *ConfigServer) LoadFileConfig(filePath string) error {
 	cs.FileStoragePath = cnf.FileStoragePath
 	cs.DatabaseDSN = cnf.DatabaseDSN
 	cs.EnableHTTPS = cnf.EnableHTTPS
+	cs.TrustedSubnet = cnf.TrustedSubnet
 	return nil
 }

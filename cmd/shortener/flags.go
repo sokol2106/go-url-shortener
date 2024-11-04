@@ -25,6 +25,7 @@ func WithServerAddress(cnf *config.ConfigServer) Option {
 		flag.StringVar(&cnf.FileStoragePath, "f", cnf.FileStoragePath, "file storage path")
 		flag.StringVar(&cnf.DatabaseDSN, "d", cnf.DatabaseDSN, "data connection Database")
 		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
+		flag.StringVar(&cnf.TrustedSubnet, "t", cnf.TrustedSubnet, "trusted subnet")
 
 		cnf.SetEnableHTTPS(enableHTTPS)
 	}

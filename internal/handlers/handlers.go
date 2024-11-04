@@ -14,6 +14,7 @@ import (
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"io"
 	"log"
+	"net"
 	"net/http"
 )
 
@@ -22,6 +23,7 @@ type Handlers struct {
 	srvShortURL      *service.ShortURL      // Сервис сокращения URL
 	token            *middleware.Token      // Токен авторизации
 	srvAuthorization *service.Authorization // Сервис авторизации
+	trustedSubnet    string                 // Конфигурация сервера
 }
 
 // RequestJSON представляет структуру запроса в формате JSON для создания сокращенного URL.
@@ -34,14 +36,21 @@ type ResponseJSON struct {
 	Result string `json:"result"`
 }
 
+// ResponseStats представляет структуру ответа GetStats
+type ResponseStats struct {
+	Urls  int `json:"urls"`
+	Users int `json:"users"`
+}
+
 // NewHandlers создает новый экземпляр Handlers с переданным сервисом сокращения URL.
-func NewHandlers(srv *service.ShortURL) *Handlers {
+func NewHandlers(srv *service.ShortURL, subnet string) *Handlers {
 	t := middleware.NewToken()
 	a := t.GetAuthorization()
 	return &Handlers{
 		srvShortURL:      srv,
 		token:            t,
 		srvAuthorization: a,
+		trustedSubnet:    subnet,
 	}
 }
 
@@ -286,6 +295,48 @@ func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// GetStats обрабатывает GET-запрос для получения количество сокращённых URL и пользователей в сервисе
+func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
+	if h.trustedSubnet == "" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	ipStr := r.Header.Get("X-Real-IP")
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	_, cidr, err := net.ParseCIDR(h.trustedSubnet)
+	if err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	if !cidr.Contains(ip) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	var res ResponseStats
+
+	res.Users = h.srvAuthorization.GetUsers()
+	res.Urls = h.srvShortURL.GetURLs()
+
+	resBody, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(h.handlerError(err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(resBody)
+
+}
+
 // Router создает маршрутизатор с заданными обработчиками и middleware.
 func Router(handler *Handlers) chi.Router {
 	router := chi.NewRouter()
@@ -303,6 +354,7 @@ func Router(handler *Handlers) chi.Router {
 	router.Get("/*", http.HandlerFunc(handler.GetAll))
 	router.Get("/ping", http.HandlerFunc(handler.GetPing))
 	router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserShortenedURLs))
+	router.Get("/api/internal/stats", http.HandlerFunc(handler.GetStats))
 	router.Delete("/api/user/urls", http.HandlerFunc(handler.DeleteUserShortenedURLs))
 
 	return router

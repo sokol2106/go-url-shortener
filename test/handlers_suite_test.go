@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"github.com/stretchr/testify/suite"
+	"log"
 	"testing"
 )
 
@@ -29,7 +30,7 @@ type ServerTestSuite struct {
 func (suite *ServerTestSuite) SetupSuite() {
 	objStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objStorage)
-	handler := handlers.NewHandlers(srvShortURL)
+	handler := handlers.NewHandlers(srvShortURL, "192.168.1.0/24")
 	suite.server = httptest.NewServer(handlers.Router(handler))
 	srvShortURL.SetRedirectURL(suite.server.URL)
 }
@@ -142,6 +143,35 @@ func (suite *ServerTestSuite) TestGzipCompression() {
 	require.NoError(suite.T(), err)
 	defer resp2.Body.Close()
 	assert.Equal(suite.T(), http.StatusOK, resp2.StatusCode)
+}
+
+func (suite *ServerTestSuite) TestStats() {
+	resp, err := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader("https://www.postgresql3.org/"))
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
+
+	resp, err = http.Post(suite.server.URL+"/", "text/plain", strings.NewReader("https://www.postgresql2.org/"))
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
+
+	req, err := http.NewRequest("GET", suite.server.URL+"/api/internal/stats", nil)
+	if err != nil {
+		log.Fatalf("Error creating request: %v", err)
+	}
+
+	req.Header.Set("X-Real-IP", "192.168.1.10")
+	client := &http.Client{}
+	resp, err = client.Do(req)
+
+	require.NoError(suite.T(), err)
+	require.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+	resBody, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	var respJS handlers.ResponseStats
+	err = json.Unmarshal(resBody, &respJS)
+	require.NoError(suite.T(), err)
+	require.Equal(suite.T(), 7, respJS.Urls)
 }
 
 func TestServerSuite(t *testing.T) {
