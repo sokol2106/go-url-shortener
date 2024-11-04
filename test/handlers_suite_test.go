@@ -149,10 +149,12 @@ func (suite *ServerTestSuite) TestStats() {
 	resp, err := http.Post(suite.server.URL+"/", "text/plain", strings.NewReader("https://www.postgresql3.org/"))
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
 
 	resp, err = http.Post(suite.server.URL+"/", "text/plain", strings.NewReader("https://www.postgresql2.org/"))
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
 
 	req, err := http.NewRequest("GET", suite.server.URL+"/api/internal/stats", nil)
 	if err != nil {
@@ -166,6 +168,7 @@ func (suite *ServerTestSuite) TestStats() {
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 	resBody, err := io.ReadAll(resp.Body)
+	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
 
 	var respJS handlers.ResponseStats
