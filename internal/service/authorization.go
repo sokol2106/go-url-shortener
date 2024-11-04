@@ -83,6 +83,7 @@ func (ath *Authorization) SetCurrentUserID(userID string) {
 	ath.currentUserID = userID
 }
 
+// GetUsers возвращает количество пользователей
 func (ath *Authorization) GetUsers() int {
 	return int(atomic.LoadInt64(&ath.countUsers))
 }
