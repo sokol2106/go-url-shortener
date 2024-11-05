@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+	"log"
 	"net"
 	"strings"
 	"testing"
@@ -33,24 +34,21 @@ func TestGRPC(t *testing.T) {
 	urlShortenerServer := grpchandlers.NewURLShortenerServer(srvShortURL, srvAuthorization, "")
 	proto.RegisterURLShortenerServer(grpcServer, urlShortenerServer)
 
-	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	conn, err := grpc.Dial("bufnet",
-		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
-			return listener.Dial()
-		}),
-		grpc.WithTransportCredentials(insecure.NewCredentials()), // заменяем WithInsecure
-	)
-	require.NoError(t, err)
-
+	lis, err := net.Listen("tcp", ":3200")
 	if err != nil {
-		t.Fatalf("Failed to dial bufnet: %v", err)
+		t.Error(err)
 	}
 
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+	
+	conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer conn.Close()
 
 	client := proto.NewURLShortenerClient(conn)
