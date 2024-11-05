@@ -43,13 +43,12 @@ type ResponseStats struct {
 }
 
 // NewHandlers создает новый экземпляр Handlers с переданным сервисом сокращения URL.
-func NewHandlers(srv *service.ShortURL, subnet string) *Handlers {
-	t := middleware.NewToken()
-	a := t.GetAuthorization()
+func NewHandlers(srv *service.ShortURL, t *middleware.Token, subnet string) *Handlers {
+	srvAu := t.GetAuthorization()
 	return &Handlers{
 		srvShortURL:      srv,
 		token:            t,
-		srvAuthorization: a,
+		srvAuthorization: srvAu,
 		trustedSubnet:    subnet,
 	}
 }
