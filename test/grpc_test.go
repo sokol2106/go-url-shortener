@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 	"net"
 	"strings"
@@ -34,16 +35,18 @@ func TestGRPC(t *testing.T) {
 
 	go func() {
 		if err := grpcServer.Serve(listener); err != nil {
-			t.Fatalf("Failed to serve: %v", err)
+			t.Error(err)
 		}
 	}()
 
-	conn, err := grpc.DialContext(context.Background(), "bufnet",
-		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+	conn, err := grpc.Dial("bufnet",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
 			return listener.Dial()
 		}),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(insecure.NewCredentials()), // заменяем WithInsecure
 	)
+	require.NoError(t, err)
+
 	if err != nil {
 		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
