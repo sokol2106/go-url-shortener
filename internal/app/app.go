@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/handlers"
+	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/server"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
@@ -66,13 +67,16 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 
 	objStorage := initStorage(app.DB, app.File)
 	srvShortURL := service.NewShortURL(cnf.DefaultBaseURL, objStorage)
-	handler := handlers.NewHandlers(srvShortURL, cnf.TrustedSubnet)
+	token := middleware.NewToken()
+	handler := handlers.NewHandlers(srvShortURL, token, cnf.TrustedSubnet)
 
 	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
 
 	idleConnsClosed := make(chan struct{})
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	grpc := server.NewGRPCServer()
 
 	go func() {
 		<-stop
@@ -84,6 +88,8 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 			log.Printf("Object storage close: %v", err)
 		}
 
+		grpc.StopGRPCServer()
+
 		log.Println("Signal shutdown")
 		close(idleConnsClosed)
 	}()
@@ -91,6 +97,11 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 	err := ser.Start(cnf.EnableHTTPS)
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
+	}
+
+	err = grpc.StartGRPCServer(":3200", srvShortURL, token.GetAuthorization(), cnf.TrustedSubnet)
+	if err != nil {
+		log.Printf("Starting grpc server error: %s", err)
 	}
 
 	<-idleConnsClosed
