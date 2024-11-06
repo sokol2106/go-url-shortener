@@ -13,11 +13,28 @@ type grpcServer struct {
 	server *grpc.Server
 }
 
+type Option func(*grpcServer)
+
+// WithMaxConnections создает gRPC-сервер с параметром максимальным количеством подключений.
+func WithMaxConnections(max int) Option {
+	return func(s *grpcServer) {
+		s.server = grpc.NewServer(
+			grpc.MaxConcurrentStreams(uint32(max)),
+		)
+	}
+}
+
 // NewGRPCServer создает gRPC-сервер.
-func NewGRPCServer() *grpcServer {
-	return &grpcServer{
+func NewGRPCServer(opt ...Option) *grpcServer {
+	s := &grpcServer{
 		server: grpc.NewServer(),
 	}
+
+	for _, option := range opt {
+		option(s)
+	}
+
+	return s
 }
 
 // StartGRPCServer создает и запускает gRPC-сервер.

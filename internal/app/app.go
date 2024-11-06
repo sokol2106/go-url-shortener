@@ -76,7 +76,7 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
-	grpc := server.NewGRPCServer()
+	grpc := server.NewGRPCServer(server.WithMaxConnections(cnf.GetMaxConnect()))
 
 	go func() {
 		<-stop
@@ -99,7 +99,7 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 		log.Printf("Starting server error: %s", err)
 	}
 
-	err = grpc.StartGRPCServer(":3200", srvShortURL, token.GetAuthorization(), cnf.TrustedSubnet)
+	err = grpc.StartGRPCServer(cnf.GRPCPort, srvShortURL, token.GetAuthorization(), cnf.TrustedSubnet)
 	if err != nil {
 		log.Printf("Starting grpc server error: %s", err)
 	}

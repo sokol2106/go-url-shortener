@@ -26,6 +26,8 @@ func WithServerAddress(cnf *config.ConfigServer) Option {
 		flag.StringVar(&cnf.DatabaseDSN, "d", cnf.DatabaseDSN, "data connection Database")
 		flag.StringVar(&enableHTTPS, "s", enableHTTPS, "enable https")
 		flag.StringVar(&cnf.TrustedSubnet, "t", cnf.TrustedSubnet, "trusted subnet")
+		flag.StringVar(&cnf.GRPCPort, "gp", cnf.GRPCPort, "grpc port")
+		flag.StringVar(&cnf.GRPCMaxConnect, "gc", cnf.GRPCMaxConnect, "grpc max connect count")
 
 		cnf.SetEnableHTTPS(enableHTTPS)
 	}

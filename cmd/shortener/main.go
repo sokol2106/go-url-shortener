@@ -39,6 +39,8 @@ func main() {
 		os.Getenv("DATABASE_DSN"),
 		os.Getenv("ENABLE_HTTPS"),
 		os.Getenv("TRUSTED_SUBNET"),
+		os.Getenv("GRPC_PORT"),
+		os.Getenv("GRPC_MAX_CONNECT"),
 	)
 
 	ParseFlags(WithServerAddress(cnf), WithBuildInfo())
