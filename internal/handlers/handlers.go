@@ -332,26 +332,26 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // Router создает маршрутизатор с заданными обработчиками и middleware.
-func (handler *Handlers) Router() chi.Router {
+func (h *Handlers) Router() chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
 	router.Use(middleware.СompressionResponseRequest)
 	router.Use(middleware.LoggingResponseRequest)
 	router.Use(func(handlerF http.Handler) http.Handler {
-		return middleware.TokenResponseRequest(handler.srvShortURL.GetAuthorization(), handlerF)
+		return middleware.TokenResponseRequest(h.srvShortURL.GetAuthorization(), handlerF)
 	})
 
 	// router
-	router.Post("/", http.HandlerFunc(handler.Post))
-	router.Post("/api/shorten", http.HandlerFunc(handler.PostJSON))
-	router.Post("/api/shorten/batch", http.HandlerFunc(handler.PostBatch))
-	router.Get("/{id}", http.HandlerFunc(handler.Get))
-	router.Get("/*", http.HandlerFunc(handler.GetAll))
-	router.Get("/ping", http.HandlerFunc(handler.GetPing))
-	router.Get("/api/user/urls", http.HandlerFunc(handler.GetUserShortenedURLs))
-	router.Get("/api/internal/stats", http.HandlerFunc(handler.GetStats))
-	router.Delete("/api/user/urls", http.HandlerFunc(handler.DeleteUserShortenedURLs))
+	router.Post("/", http.HandlerFunc(h.Post))
+	router.Post("/api/shorten", http.HandlerFunc(h.PostJSON))
+	router.Post("/api/shorten/batch", http.HandlerFunc(h.PostBatch))
+	router.Get("/{id}", http.HandlerFunc(h.Get))
+	router.Get("/*", http.HandlerFunc(h.GetAll))
+	router.Get("/ping", http.HandlerFunc(h.GetPing))
+	router.Get("/api/user/urls", http.HandlerFunc(h.GetUserShortenedURLs))
+	router.Get("/api/internal/stats", http.HandlerFunc(h.GetStats))
+	router.Delete("/api/user/urls", http.HandlerFunc(h.DeleteUserShortenedURLs))
 
 	return router
 }
