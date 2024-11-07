@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/config"
 	"github.com/sokol2106/go-url-shortener/internal/handlers"
-	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/server"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
@@ -67,10 +66,9 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 
 	objStorage := initStorage(app.DB, app.File)
 	srvShortURL := service.NewShortURL(cnf.DefaultBaseURL, objStorage)
-	token := middleware.NewToken()
-	handler := handlers.NewHandlers(srvShortURL, token, cnf.TrustedSubnet)
+	handler := handlers.NewHandlers(srvShortURL, cnf.TrustedSubnet)
 
-	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
+	ser := server.NewServer(handler.Router(), cnf.ServerAddress)
 
 	idleConnsClosed := make(chan struct{})
 	stop := make(chan os.Signal, 1)
@@ -99,7 +97,7 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 		log.Printf("Starting server error: %s", err)
 	}
 
-	err = grpc.StartGRPCServer(cnf.GRPCPort, srvShortURL, token.GetAuthorization(), cnf.TrustedSubnet)
+	err = grpc.StartGRPCServer(cnf.GRPCPort, srvShortURL, cnf.TrustedSubnet)
 	if err != nil {
 		log.Printf("Starting grpc server error: %s", err)
 	}

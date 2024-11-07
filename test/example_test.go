@@ -3,7 +3,6 @@ package test
 import (
 	"fmt"
 	"github.com/sokol2106/go-url-shortener/internal/handlers"
-	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"io"
@@ -16,8 +15,8 @@ import (
 func newServer() *httptest.Server {
 	objectStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	sh := handlers.NewHandlers(srvShortURL, middleware.NewToken(), "")
-	server := httptest.NewServer(handlers.Router(sh))
+	sh := handlers.NewHandlers(srvShortURL, "")
+	server := httptest.NewServer(sh.Router())
 	return server
 }
 

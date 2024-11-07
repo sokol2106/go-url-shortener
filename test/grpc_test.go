@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/grpchandlers"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/grpchandlers/grpcservice/proto"
-	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -27,11 +26,10 @@ func init() {
 func TestGRPC(t *testing.T) {
 	objStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("", objStorage)
-	srvAuthorization := middleware.NewToken().GetAuthorization()
 
 	// Создаем сервер
 	grpcServer := grpc.NewServer()
-	urlShortenerServer := grpchandlers.NewURLShortenerServer(srvShortURL, srvAuthorization, "")
+	urlShortenerServer := grpchandlers.NewURLShortenerServer(srvShortURL, "")
 	proto.RegisterURLShortenerServer(grpcServer, urlShortenerServer)
 
 	lis, err := net.Listen("tcp", ":3200")
@@ -44,7 +42,7 @@ func TestGRPC(t *testing.T) {
 			log.Fatalf("Failed to serve: %v", err)
 		}
 	}()
-	
+
 	conn, err := grpc.NewClient(":3200", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
@@ -54,7 +52,7 @@ func TestGRPC(t *testing.T) {
 	client := proto.NewURLShortenerClient(conn)
 
 	t.Run("testGRPC", func(t *testing.T) {
-		token, err := srvAuthorization.NewUserToken()
+		token, err := srvShortURL.GetAuthorization().NewUserToken()
 		require.NoError(t, err)
 
 		req := &proto.CreateShortURLRequest{

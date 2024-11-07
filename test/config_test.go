@@ -29,6 +29,8 @@ func TestConfig(t *testing.T) {
 			testData.DatabaseDsn,
 			testData.EnableHTTPS,
 			"",
+			"",
+			"",
 		)
 
 		assert.Equal(t, testData.ServerAddress, cnf.ServerAddress)

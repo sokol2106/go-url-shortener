@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/stretchr/testify/suite"
 	"log"
 	"testing"
@@ -31,8 +30,8 @@ type ServerTestSuite struct {
 func (suite *ServerTestSuite) SetupSuite() {
 	objStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objStorage)
-	handler := handlers.NewHandlers(srvShortURL, middleware.NewToken(), "192.168.1.0/24")
-	suite.server = httptest.NewServer(handlers.Router(handler))
+	handler := handlers.NewHandlers(srvShortURL, "192.168.1.0/24")
+	suite.server = httptest.NewServer(handler.Router())
 	srvShortURL.SetRedirectURL(suite.server.URL)
 }
 

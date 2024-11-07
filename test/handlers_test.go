@@ -3,7 +3,6 @@ package test
 import (
 	"context"
 	"github.com/sokol2106/go-url-shortener/internal/handlers"
-	"github.com/sokol2106/go-url-shortener/internal/middleware"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 	"github.com/sokol2106/go-url-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
@@ -29,8 +28,8 @@ func TestFileReadWrite(t *testing.T) {
 	defer objectStorage.Close()
 
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	sh := handlers.NewHandlers(srvShortURL, middleware.NewToken(), "")
-	server := httptest.NewServer(handlers.Router(sh))
+	sh := handlers.NewHandlers(srvShortURL, "")
+	server := httptest.NewServer(sh.Router())
 
 	tests := []struct {
 		name     string
@@ -88,7 +87,7 @@ func TestFileReadWrite(t *testing.T) {
 func TestShortURLPostBatch(t *testing.T) {
 	objectStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	handler := handlers.NewHandlers(srvShortURL, middleware.NewToken(), "")
+	handler := handlers.NewHandlers(srvShortURL, "")
 
 	t.Run("Test POST Batch", func(t *testing.T) {
 		t.Parallel()
@@ -106,8 +105,8 @@ func TestShortURLPostBatch(t *testing.T) {
 func TestGetUserShortenedURLs(t *testing.T) {
 	objectStorage := storage.NewMemory()
 	srvShortURL := service.NewShortURL("http://localhost:8080", objectStorage)
-	sh := handlers.NewHandlers(srvShortURL, middleware.NewToken(), "")
-	server := httptest.NewServer(handlers.Router(sh))
+	sh := handlers.NewHandlers(srvShortURL, "")
+	server := httptest.NewServer(sh.Router())
 
 	defer server.Close()
 

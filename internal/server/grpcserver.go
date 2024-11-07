@@ -38,13 +38,13 @@ func NewGRPCServer(opt ...Option) *grpcServer {
 }
 
 // StartGRPCServer создает и запускает gRPC-сервер.
-func (g *grpcServer) StartGRPCServer(address string, srvSh *service.ShortURL, srvAu *service.Authorization, subnet string) error {
+func (g *grpcServer) StartGRPCServer(address string, srvSh *service.ShortURL, subnet string) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
 
-	server := grpchandlers.NewURLShortenerServer(srvSh, srvAu, subnet)
+	server := grpchandlers.NewURLShortenerServer(srvSh, subnet)
 	proto.RegisterURLShortenerServer(g.server, server)
 
 	return g.server.Serve(lis)

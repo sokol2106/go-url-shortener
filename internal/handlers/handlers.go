@@ -20,10 +20,8 @@ import (
 
 // Handlers представляет собой структуру, содержащую сервисы для обработки URL и авторизации.
 type Handlers struct {
-	srvShortURL      *service.ShortURL      // Сервис сокращения URL
-	token            *middleware.Token      // Токен авторизации
-	srvAuthorization *service.Authorization // Сервис авторизации
-	trustedSubnet    string                 // Конфигурация сервера
+	srvShortURL   *service.ShortURL // Сервис сокращения URL
+	trustedSubnet string            // Конфигурация сервера
 }
 
 // RequestJSON представляет структуру запроса в формате JSON для создания сокращенного URL.
@@ -43,13 +41,10 @@ type ResponseStats struct {
 }
 
 // NewHandlers создает новый экземпляр Handlers с переданным сервисом сокращения URL.
-func NewHandlers(srv *service.ShortURL, t *middleware.Token, subnet string) *Handlers {
-	srvAu := t.GetAuthorization()
+func NewHandlers(srv *service.ShortURL, subnet string) *Handlers {
 	return &Handlers{
-		srvShortURL:      srv,
-		token:            t,
-		srvAuthorization: srvAu,
-		trustedSubnet:    subnet,
+		srvShortURL:   srv,
+		trustedSubnet: subnet,
 	}
 }
 
@@ -85,7 +80,7 @@ func (h *Handlers) Post(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	shortURL, err := h.srvShortURL.AddOriginalURL(string(body), h.srvAuthorization.GetCurrentUserID())
+	shortURL, err := h.srvShortURL.AddOriginalURL(string(body), h.srvShortURL.GetAuthorization().GetCurrentUserID())
 
 	if err != nil {
 		handlerStatus = h.handlerError(err)
@@ -133,7 +128,7 @@ func (h *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resJS.Result, err = h.srvShortURL.AddOriginalURL(reqJS.URL, h.srvAuthorization.GetCurrentUserID())
+	resJS.Result, err = h.srvShortURL.AddOriginalURL(reqJS.URL, h.srvShortURL.GetAuthorization().GetCurrentUserID())
 
 	if err != nil {
 		handlerStatus = h.handlerError(err)
@@ -176,7 +171,7 @@ func (h *Handlers) PostBatch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	responseBatch, err = h.srvShortURL.AddOriginalURLBatch(requestBatch, h.srvAuthorization.GetCurrentUserID())
+	responseBatch, err = h.srvShortURL.AddOriginalURLBatch(requestBatch, h.srvShortURL.GetAuthorization().GetCurrentUserID())
 
 	if err != nil {
 		handlerStatus = h.handlerError(err)
@@ -245,14 +240,14 @@ func (h *Handlers) GetPing(w http.ResponseWriter, r *http.Request) {
 
 // GetUserShortenedURLs обрабатывает GET-запрос для получения сокращенных URL текущего пользователя.
 func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
-	if h.srvAuthorization.IsNewUser() {
+	if h.srvShortURL.GetAuthorization().IsNewUser() {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-	res, err := h.srvShortURL.GetUserShortenedURLs(ctx, h.srvAuthorization.GetCurrentUserID())
+	res, err := h.srvShortURL.GetUserShortenedURLs(ctx, h.srvShortURL.GetAuthorization().GetCurrentUserID())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -270,7 +265,7 @@ func (h *Handlers) GetUserShortenedURLs(w http.ResponseWriter, r *http.Request) 
 
 // DeleteUserShortenedURLs обрабатывает DELETE-запрос для удаления сокращенных URL текущего пользователя.
 func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Request) {
-	if h.srvAuthorization.IsNewUser() {
+	if h.srvShortURL.GetAuthorization().IsNewUser() {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -288,7 +283,7 @@ func (h *Handlers) DeleteUserShortenedURLs(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 
-	h.srvShortURL.DeleteOriginalURLs(ctx, h.srvAuthorization.GetCurrentUserID(), request)
+	h.srvShortURL.DeleteOriginalURLs(ctx, h.srvShortURL.GetAuthorization().GetCurrentUserID(), request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
@@ -321,7 +316,7 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	var res ResponseStats
 
-	res.Users = h.srvAuthorization.GetUsers()
+	res.Users = h.srvShortURL.GetAuthorization().GetUsers()
 	res.Urls = h.srvShortURL.GetURLs()
 
 	resBody, err := json.Marshal(res)
@@ -337,13 +332,15 @@ func (h *Handlers) GetStats(w http.ResponseWriter, r *http.Request) {
 }
 
 // Router создает маршрутизатор с заданными обработчиками и middleware.
-func Router(handler *Handlers) chi.Router {
+func (handler *Handlers) Router() chi.Router {
 	router := chi.NewRouter()
 
 	// middleware
 	router.Use(middleware.СompressionResponseRequest)
 	router.Use(middleware.LoggingResponseRequest)
-	router.Use(handler.token.TokenResponseRequest)
+	router.Use(func(handlerF http.Handler) http.Handler {
+		return middleware.TokenResponseRequest(handler.srvShortURL.GetAuthorization(), handlerF)
+	})
 
 	// router
 	router.Post("/", http.HandlerFunc(handler.Post))

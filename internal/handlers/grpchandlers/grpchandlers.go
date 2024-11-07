@@ -11,23 +11,21 @@ import (
 // URLShortenerServer предоставляет gRPC-сервис сокращения URL.
 type URLShortenerServer struct {
 	proto.UnimplementedURLShortenerServer
-	srvShortURL      *service.ShortURL      // Сервис сокращения URL
-	srvAuthorization *service.Authorization // Сервис авторизации
-	trustedSubnet    string                 // Конфигурация сервера
+	srvShortURL   *service.ShortURL // Сервис сокращения URL
+	trustedSubnet string            // Конфигурация сервера
 }
 
 // NewURLShortenerServer создает новый экземпляр gRPC-сервера для сокращения URL.
-func NewURLShortenerServer(srvSh *service.ShortURL, srvAu *service.Authorization, subnet string) *URLShortenerServer {
+func NewURLShortenerServer(srvSh *service.ShortURL, subnet string) *URLShortenerServer {
 	return &URLShortenerServer{
-		srvShortURL:      srvSh,
-		srvAuthorization: srvAu,
-		trustedSubnet:    subnet,
+		srvShortURL:   srvSh,
+		trustedSubnet: subnet,
 	}
 }
 
 // CreateShortURL обрабатывает запрос на создание сокращенного URL.
 func (s *URLShortenerServer) CreateShortURL(ctx context.Context, req *proto.CreateShortURLRequest) (*proto.CreateShortURLResponse, error) {
-	id, err := s.srvAuthorization.GetUserID(req.Token)
+	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +45,7 @@ func (s *URLShortenerServer) CreateShortURLJSON(ctx context.Context, req *proto.
 		resJS handlers.ResponseJSON
 	)
 
-	id, err := s.srvAuthorization.GetUserID(req.Token)
+	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +86,7 @@ func (s *URLShortenerServer) GetUserShortenedURLs(ctx context.Context, req *prot
 	ctx2, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	id, err := s.srvAuthorization.GetUserID(req.Token)
+	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +110,7 @@ func (s *URLShortenerServer) DeleteUserShortenedURLs(ctx context.Context, req *p
 	ctx2, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	id, err := s.srvAuthorization.GetUserID(req.Token)
+	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
 	if err != nil {
 		return nil, err
 	}

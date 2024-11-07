@@ -45,8 +45,9 @@ type Storage interface {
 
 // ShortURL хранит информацию о пользователях системы и их текущем состоянии авторизации.
 type ShortURL struct {
-	RedirectURL string  // базовый URL на который производится редирект
-	storage     Storage // хранилище URL-ов
+	srvAuthorization *Authorization // сервис авторизации
+	RedirectURL      string         // базовый URL на который производится редирект
+	storage          Storage        // хранилище URL-ов
 }
 
 // RequestBatch представляет структуру запроса для пакетного добавления URL.
@@ -75,10 +76,16 @@ type RequestUserShortenedURL struct {
 
 // NewShortURL создаёт новый экземпляр ShortURL с базовым URL для редиректов и хранилищем для управления URL.
 func NewShortURL(redirectURL string, strg Storage) *ShortURL {
-	s := new(ShortURL)
-	s.RedirectURL = redirectURL
-	s.storage = strg
-	return s
+	return &ShortURL{
+		srvAuthorization: NewAuthorization(),
+		RedirectURL:      redirectURL,
+		storage:          strg,
+	}
+}
+
+// GetAuthorization возвращает объект авторизации.
+func (s *ShortURL) GetAuthorization() *Authorization {
+	return s.srvAuthorization
 }
 
 // SetRedirectURL изменяет базовый URL для редиректа.
