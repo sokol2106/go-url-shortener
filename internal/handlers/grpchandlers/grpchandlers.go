@@ -2,8 +2,6 @@ package grpchandlers
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/sokol2106/go-url-shortener/internal/handlers"
 	"github.com/sokol2106/go-url-shortener/internal/handlers/grpchandlers/grpcservice/proto"
 	"github.com/sokol2106/go-url-shortener/internal/service"
 )
@@ -25,12 +23,7 @@ func NewURLShortenerServer(srvSh *service.ShortURL, subnet string) *URLShortener
 
 // CreateShortURL обрабатывает запрос на создание сокращенного URL.
 func (s *URLShortenerServer) CreateShortURL(ctx context.Context, req *proto.CreateShortURLRequest) (*proto.CreateShortURLResponse, error) {
-	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
-	if err != nil {
-		return nil, err
-	}
-
-	shortURL, err := s.srvShortURL.AddOriginalURL(req.Url, id)
+	shortURL, err := s.srvShortURL.AddOriginalURLToken(req.Url, req.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -40,28 +33,7 @@ func (s *URLShortenerServer) CreateShortURL(ctx context.Context, req *proto.Crea
 
 // CreateShortURL обрабатывает JSON запрос на создание сокращенного URL.
 func (s *URLShortenerServer) CreateShortURLJSON(ctx context.Context, req *proto.CreateShortURLRequestJSON) (*proto.CreateShortURLResponseJSON, error) {
-	var (
-		reqJS handlers.RequestJSON
-		resJS handlers.ResponseJSON
-	)
-
-	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal([]byte(req.Url), &reqJS)
-
-	if err != nil {
-		return nil, err
-	}
-
-	resJS.Result, err = s.srvShortURL.AddOriginalURL(req.Url, id)
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := json.Marshal(resJS)
+	response, err := s.srvShortURL.AddOriginalURLJSONToken([]byte(req.Url), req.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +58,7 @@ func (s *URLShortenerServer) GetUserShortenedURLs(ctx context.Context, req *prot
 	ctx2, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
-	if err != nil {
-		return nil, err
-	}
-
-	URLs, err := s.srvShortURL.GetUserShortenedURLs(ctx2, id)
+	URLs, err := s.srvShortURL.GetUserShortenedURLsToken(ctx2, req.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +77,6 @@ func (s *URLShortenerServer) DeleteUserShortenedURLs(ctx context.Context, req *p
 	ctx2, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	id, err := s.srvShortURL.GetAuthorization().GetUserID(req.Token)
-	if err != nil {
-		return nil, err
-	}
-
-	s.srvShortURL.DeleteOriginalURLs(ctx2, id, req.Urls)
-	return &proto.DeleteUserShortenedURLsResponse{}, nil
+	err := s.srvShortURL.DeleteOriginalURLsToken(ctx2, req.Token, req.Urls)
+	return &proto.DeleteUserShortenedURLsResponse{}, err
 }

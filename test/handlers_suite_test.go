@@ -99,7 +99,7 @@ func (suite *ServerTestSuite) TestPostJSON() {
 	defer resp.Body.Close()
 	require.NoError(suite.T(), err)
 
-	var respJS handlers.ResponseJSON
+	var respJS service.ResponseJSON
 	err = json.Unmarshal(resBody, &respJS)
 	require.NoError(suite.T(), err)
 

@@ -24,16 +24,6 @@ type Handlers struct {
 	trustedSubnet string            // Конфигурация сервера
 }
 
-// RequestJSON представляет структуру запроса в формате JSON для создания сокращенного URL.
-type RequestJSON struct {
-	URL string `json:"url"`
-}
-
-// ResponseJSON представляет структуру ответа в формате JSON с сокращенным URL.
-type ResponseJSON struct {
-	Result string `json:"result"`
-}
-
 // ResponseStats представляет структуру ответа GetStats
 type ResponseStats struct {
 	Urls  int `json:"urls"`
@@ -114,31 +104,8 @@ func (h *Handlers) PostJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var (
-		reqJS RequestJSON
-		resJS ResponseJSON
-	)
+	resBody, err := h.srvShortURL.AddOriginalURLJSON(body, h.srvShortURL.GetAuthorization().GetCurrentUserID())
 
-	err = json.Unmarshal(body, &reqJS)
-	if err != nil {
-		handlerStatus = h.handlerError(err)
-		if handlerStatus == http.StatusBadRequest {
-			w.WriteHeader(handlerStatus)
-			return
-		}
-	}
-
-	resJS.Result, err = h.srvShortURL.AddOriginalURL(reqJS.URL, h.srvShortURL.GetAuthorization().GetCurrentUserID())
-
-	if err != nil {
-		handlerStatus = h.handlerError(err)
-		if handlerStatus == http.StatusBadRequest {
-			w.WriteHeader(handlerStatus)
-			return
-		}
-	}
-
-	resBody, err := json.Marshal(resJS)
 	if err != nil {
 		handlerStatus = h.handlerError(err)
 		if handlerStatus == http.StatusBadRequest {
