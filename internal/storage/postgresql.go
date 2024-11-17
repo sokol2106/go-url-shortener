@@ -20,6 +20,7 @@ import (
 // PostgreSQL представляет структуру для работы с базой данных PostgreSQL, реализующую интерфейс Storage.
 // db - объект БД, через который осуществляется соединение,
 // config - конфигурация подключения к БД.
+// countURLs - количество сокращённых URL в сервисе
 type PostgreSQL struct {
 	db     *sql.DB
 	config string
@@ -180,6 +181,17 @@ func (pstg *PostgreSQL) GetUserShortenedURLs(ctx context.Context, userID, redire
 	}
 
 	return result, nil
+}
+
+// GetURLs возвращает количество сокращённых URL в сервисе
+func (pstg *PostgreSQL) GetURLs() int {
+	var rowCount int
+	err := pstg.db.QueryRowContext(context.Background(), "SELECT COUNT(*) AS row_count FROM public.shorturl").Scan(&rowCount)
+	if err != nil {
+		return 0
+	}
+
+	return rowCount
 }
 
 // DeleteOriginalURL устанавливает флаг удаления для короткого URL, принадлежащего пользователю.

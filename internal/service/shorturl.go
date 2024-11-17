@@ -30,6 +30,9 @@ type Storage interface {
 	// GetUserShortenedURLs возвращает список всех сокращённых URL, созданных пользователем с указанным userID.
 	GetUserShortenedURLs(context.Context, string, string) ([]ResponseUserShortenedURL, error)
 
+	// GetURLs возвращает количество сокращённых URL в сервисе
+	GetURLs() int
+
 	// DeleteOriginalURL удаляет сокращённый URL по данным пользователя.
 	DeleteOriginalURL(context.Context, RequestUserShortenedURL) error
 
@@ -42,8 +45,9 @@ type Storage interface {
 
 // ShortURL хранит информацию о пользователях системы и их текущем состоянии авторизации.
 type ShortURL struct {
-	RedirectURL string  // базовый URL на который производится редирект
-	storage     Storage // хранилище URL-ов
+	srvAuthorization *Authorization // сервис авторизации
+	RedirectURL      string         // базовый URL на который производится редирект
+	storage          Storage        // хранилище URL-ов
 }
 
 // RequestBatch представляет структуру запроса для пакетного добавления URL.
@@ -70,12 +74,28 @@ type RequestUserShortenedURL struct {
 	ShortURL string `json:"short_url"` // сокращённый URL для удаления
 }
 
+// RequestJSON представляет структуру запроса в формате JSON для создания сокращенного URL.
+type RequestJSON struct {
+	URL string `json:"url"`
+}
+
+// ResponseJSON представляет структуру ответа в формате JSON с сокращенным URL.
+type ResponseJSON struct {
+	Result string `json:"result"`
+}
+
 // NewShortURL создаёт новый экземпляр ShortURL с базовым URL для редиректов и хранилищем для управления URL.
 func NewShortURL(redirectURL string, strg Storage) *ShortURL {
-	s := new(ShortURL)
-	s.RedirectURL = redirectURL
-	s.storage = strg
-	return s
+	return &ShortURL{
+		srvAuthorization: NewAuthorization(),
+		RedirectURL:      redirectURL,
+		storage:          strg,
+	}
+}
+
+// GetAuthorization возвращает объект авторизации.
+func (s *ShortURL) GetAuthorization() *Authorization {
+	return s.srvAuthorization
 }
 
 // SetRedirectURL изменяет базовый URL для редиректа.
@@ -87,6 +107,74 @@ func (s *ShortURL) SetRedirectURL(url string) {
 func (s *ShortURL) AddOriginalURL(url, userID string) (string, error) {
 	res, err := s.storage.AddOriginalURL(url, userID)
 	return fmt.Sprintf("%s/%s", s.RedirectURL, res), err
+}
+
+// AddOriginalURLJSO добавляет оригинальный URL и возвращает полный сокращённый URL, используя базовый URL редиректа.
+func (s *ShortURL) AddOriginalURLJSON(url []byte, userID string) ([]byte, error) {
+	var (
+		reqJS RequestJSON
+		resJS ResponseJSON
+	)
+
+	err := json.Unmarshal(url, &reqJS)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resJS.Result, err = s.AddOriginalURL(reqJS.URL, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := json.Marshal(resJS)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, err
+}
+
+// AddOriginalURLToken добавляет оригинальный URL и Token, возвращает полный сокращённый URL, используя базовый URL редиректа.
+func (s *ShortURL) AddOriginalURLToken(url, token string) (string, error) {
+	id, err := s.srvAuthorization.GetUserID(token)
+	if err != nil {
+		return "", err
+	}
+
+	res, err := s.storage.AddOriginalURL(url, id)
+	return fmt.Sprintf("%s/%s", s.RedirectURL, res), err
+}
+
+// AddOriginalURLJSOToken добавляет оригинальный URL и возвращает полный сокращённый URL, используя базовый URL редиректа.
+func (s *ShortURL) AddOriginalURLJSONToken(url []byte, token string) ([]byte, error) {
+	var (
+		reqJS RequestJSON
+		resJS ResponseJSON
+	)
+
+	id, err := s.srvAuthorization.GetUserID(token)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(url, &reqJS)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resJS.Result, err = s.AddOriginalURL(reqJS.URL, id)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := json.Marshal(resJS)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, err
 }
 
 // AddOriginalURLBatch добавляет несколько оригинальных URL-адресов в пакетном режиме для указанного пользователя.
@@ -131,11 +219,57 @@ func (s *ShortURL) GetUserShortenedURLs(ctx context.Context, userID string) ([]b
 	return body, nil
 }
 
+// GetUserShortenedURLsToken возвращает список всех сокращённых URL пользователя в формате JSON.
+func (s *ShortURL) GetUserShortenedURLsToken(ctx context.Context, token string) ([]byte, error) {
+	var res bytes.Buffer
+
+	id, err := s.srvAuthorization.GetUserID(token)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx2, cancel := context.WithCancel(ctx)
+	defer cancel()
+	responseBatch, err := s.storage.GetUserShortenedURLs(ctx2, id, s.RedirectURL)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.NewEncoder(&res).Encode(responseBatch)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := io.ReadAll(&res)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
+// GetURLs возвращает количество сокращённых URL в сервисе
+func (s *ShortURL) GetURLs() int {
+	return s.storage.GetURLs()
+}
+
 // DeleteOriginalURLs удаляет список сокращённых URL-адресов для пользователя в асинхронном режиме с использованием горутин.
 func (s *ShortURL) DeleteOriginalURLs(ctx context.Context, userID string, shortURLs []string) {
 	inCH := s.generatorDeleteShortURL(userID, shortURLs)
 	channels := s.funOut(inCH)
 	s.funIn(channels...)
+}
+
+// DeleteOriginalURLsToken удаляет список сокращённых URL-адресов для пользователя в асинхронном режиме с использованием горутин.
+func (s *ShortURL) DeleteOriginalURLsToken(ctx context.Context, token string, shortURLs []string) error {
+	id, err := s.srvAuthorization.GetUserID(token)
+	if err != nil {
+		return err
+	}
+	inCH := s.generatorDeleteShortURL(id, shortURLs)
+	channels := s.funOut(inCH)
+	s.funIn(channels...)
+	return nil
 }
 
 // PingContext проверяет доступность хранилища.

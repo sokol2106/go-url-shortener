@@ -66,13 +66,15 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 
 	objStorage := initStorage(app.DB, app.File)
 	srvShortURL := service.NewShortURL(cnf.DefaultBaseURL, objStorage)
-	handler := handlers.NewHandlers(srvShortURL)
+	handler := handlers.NewHandlers(srvShortURL, cnf.TrustedSubnet)
 
-	ser := server.NewServer(handlers.Router(handler), cnf.ServerAddress)
+	ser := server.NewServer(handler.Router(), cnf.ServerAddress)
 
 	idleConnsClosed := make(chan struct{})
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	grpc := server.NewGRPCServer(server.WithMaxConnections(cnf.GetMaxConnect()))
 
 	go func() {
 		<-stop
@@ -84,6 +86,8 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 			log.Printf("Object storage close: %v", err)
 		}
 
+		grpc.StopGRPCServer()
+
 		log.Println("Signal shutdown")
 		close(idleConnsClosed)
 	}()
@@ -91,6 +95,11 @@ func Run(cnf *config.ConfigServer, opts ...Option) {
 	err := ser.Start(cnf.EnableHTTPS)
 	if err != nil {
 		log.Printf("Starting server error: %s", err)
+	}
+
+	err = grpc.StartGRPCServer(cnf.GRPCPort, srvShortURL, cnf.TrustedSubnet)
+	if err != nil {
+		log.Printf("Starting grpc server error: %s", err)
 	}
 
 	<-idleConnsClosed
